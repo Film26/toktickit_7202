@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
-import prisma from './db'
+import authRoutes from './routes/auth.routes'
+import categoriesRoutes from './routes/categories.routes'
 
 const app = express()
 
@@ -11,16 +12,7 @@ app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'TokTickIT API' })
 })
 
-app.get('/api/categories', async (_req, res) => {
-  try {
-    const categories = await prisma.category.findMany({
-      orderBy: { id: 'asc' },
-      select: { id: true, name: true },
-    })
-    res.status(200).json(categories)
-  } catch {
-    res.status(500).json({ error: 'Unable to retrieve categories' })
-  }
-})
+app.use('/api/auth', authRoutes)
+app.use('/api/categories', categoriesRoutes)
 
 export default app
