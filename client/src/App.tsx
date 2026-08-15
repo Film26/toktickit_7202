@@ -21,6 +21,9 @@ function App() {
         throw new Error(`Unexpected response: ${response.status}`)
       }
       const data: HealthResponse = await response.json()
+      if (data.status !== 'ok') {
+        throw new Error(`Unexpected status: ${data.status}`)
+      }
       setHealth(data)
       setCheckState('success')
     } catch {
@@ -46,7 +49,7 @@ function App() {
 
       {checkState === 'success' && health && (
         <p className="mt-3">
-          System Status: <strong>{health.status === 'ok' ? 'Online' : health.status}</strong>
+          System Status: <strong>Online</strong>
         </p>
       )}
 

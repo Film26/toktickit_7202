@@ -37,4 +37,22 @@ describe('Check System', () => {
       expect(screen.getByText('Unable to connect to TokTickIT API')).toBeInTheDocument()
     })
   })
+
+  it('treats a 200 response with a non-ok status as offline', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: 'degraded', service: 'TokTickIT API' }),
+      }),
+    )
+
+    render(<App />)
+    await userEvent.click(screen.getByRole('button', { name: 'Check System' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Offline')).toBeInTheDocument()
+      expect(screen.queryByText('Online')).not.toBeInTheDocument()
+    })
+  })
 })
