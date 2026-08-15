@@ -2,6 +2,8 @@ import express from 'express'
 import cors from 'cors'
 import authRoutes from './routes/auth.routes'
 import categoriesRoutes from './routes/categories.routes'
+import relatedSystemsRoutes from './routes/relatedSystems.routes'
+import usersRoutes from './routes/users.routes'
 
 const app = express()
 
@@ -14,5 +16,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/categories', categoriesRoutes)
+app.use('/api/related-systems', relatedSystemsRoutes)
+app.use('/api/users', usersRoutes)
 
 export default app
