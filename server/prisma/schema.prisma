@@ -7,8 +7,134 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  REQUESTER
+  IT_STAFF
+  ADMINISTRATOR
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+model User {
+  id                 Int      @id @default(autoincrement())
+  email              String   @unique
+  passwordHash       String
+  fullName           String
+  role               Role     @default(REQUESTER)
+  isActive           Boolean  @default(true)
+  mustChangePassword Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  ticketsRequested Ticket[]        @relation("TicketRequester")
+  ticketsOwned     Ticket[]        @relation("TicketOwner")
+  publicComments   PublicComment[]
+  internalNotes    InternalNote[]
+  actionsTaken     ActionTaken[]
+  attachments      Attachment[]
+}
+
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  tickets Ticket[]
+}
+
+model RelatedSystem {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tickets Ticket[]
+}
+
+model Ticket {
+  id                Int            @id @default(autoincrement())
+  ticketNumber      String         @unique
+  requesterId       Int
+  requester         User           @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  ownerId           Int?
+  owner             User?          @relation("TicketOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  categoryId        Int
+  category          Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  relatedSystemId   Int?
+  relatedSystem     RelatedSystem? @relation(fields: [relatedSystemId], references: [id], onDelete: SetNull)
+  summary           String
+  description       String         @db.Text
+  requestedPriority Priority       @default(MEDIUM)
+  itPriority        Priority?
+  status            TicketStatus   @default(NEW)
+  resolutionSummary String?        @db.Text
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  resolvedAt        DateTime?
+  closedAt          DateTime?
+
+  publicComments PublicComment[]
+  internalNotes  InternalNote[]
+  actionsTaken   ActionTaken[]
+  attachments    Attachment[]
+
+  @@index([status])
+  @@index([requesterId])
+  @@index([ownerId])
+}
+
+model PublicComment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model InternalNote {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model ActionTaken {
+  id          Int      @id @default(autoincrement())
+  ticketId    Int
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId    Int
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  description String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Attachment {
+  id         Int      @id @default(autoincrement())
+  ticketId   Int
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploaderId Int
+  uploader   User     @relation(fields: [uploaderId], references: [id], onDelete: Restrict)
+  filename   String
+  url        String
+  createdAt  DateTime @default(now())
 }
