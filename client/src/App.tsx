@@ -7,27 +7,43 @@ type HealthResponse = {
   service: string
 }
 
+type Category = {
+  id: number
+  name: string
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 
 function App() {
   const [checkState, setCheckState] = useState<CheckState>('idle')
   const [health, setHealth] = useState<HealthResponse | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
 
   const checkSystem = async () => {
     setCheckState('loading')
     try {
-      const response = await fetch(`${API_BASE_URL}/api/health`)
-      if (!response.ok) {
-        throw new Error(`Unexpected response: ${response.status}`)
+      const [healthResponse, categoriesResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/health`),
+        fetch(`${API_BASE_URL}/api/categories`),
+      ])
+
+      if (!healthResponse.ok || !categoriesResponse.ok) {
+        throw new Error('Unexpected response')
       }
-      const data: HealthResponse = await response.json()
-      if (data.status !== 'ok') {
-        throw new Error(`Unexpected status: ${data.status}`)
+
+      const healthData: HealthResponse = await healthResponse.json()
+      if (healthData.status !== 'ok') {
+        throw new Error(`Unexpected status: ${healthData.status}`)
       }
-      setHealth(data)
+
+      const categoriesData: Category[] = await categoriesResponse.json()
+
+      setHealth(healthData)
+      setCategories(categoriesData)
       setCheckState('success')
     } catch {
       setHealth(null)
+      setCategories([])
       setCheckState('error')
     }
   }
@@ -48,9 +64,17 @@ function App() {
       {checkState === 'loading' && <p className="mt-3">⏳ Loading...</p>}
 
       {checkState === 'success' && health && (
-        <p className="mt-3">
-          System Status: <strong>Online</strong>
-        </p>
+        <div className="mt-3">
+          <p>
+            System Status: <strong>Online</strong>
+          </p>
+          <p className="mb-1">Supported Request Categories:</p>
+          <ul>
+            {categories.map((category) => (
+              <li key={category.id}>{category.name}</li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {checkState === 'error' && (
