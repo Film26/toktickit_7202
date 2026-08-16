@@ -4,18 +4,23 @@ import ProtectedRoute from './auth/ProtectedRoute'
 import NavBar from './components/NavBar'
 import LoginPage from './pages/LoginPage'
 import FirstPasswordChangePage from './pages/FirstPasswordChangePage'
+import RequesterDashboardPage from './pages/RequesterDashboardPage'
+import CreateTicketPage from './pages/CreateTicketPage'
+import RequesterTicketDetailPage from './pages/RequesterTicketDetailPage'
+import ItStaffDashboardPage from './pages/ItStaffDashboardPage'
+import ItStaffTicketDetailPage from './pages/ItStaffTicketDetailPage'
 import AccessDeniedPage from './pages/AccessDeniedPage'
 import NotFoundPage from './pages/NotFoundPage'
 import App from './App'
 
-function DashboardPlaceholder() {
+function DashboardPage() {
   const { user } = useAuth()
-  return (
-    <div className="container py-4">
-      <h1>Welcome, {user?.fullName}</h1>
-      <p className="text-muted">Role: {user?.role}</p>
-    </div>
-  )
+  return user?.role === 'REQUESTER' ? <RequesterDashboardPage /> : <ItStaffDashboardPage />
+}
+
+function TicketDetailPage() {
+  const { user } = useAuth()
+  return user?.role === 'REQUESTER' ? <RequesterTicketDetailPage /> : <ItStaffTicketDetailPage />
 }
 
 function AppRouter() {
@@ -36,7 +41,23 @@ function AppRouter() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardPlaceholder />
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tickets/new"
+          element={
+            <ProtectedRoute roles={['REQUESTER']}>
+              <CreateTicketPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tickets/:id"
+          element={
+            <ProtectedRoute>
+              <TicketDetailPage />
             </ProtectedRoute>
           }
         />
