@@ -9,6 +9,8 @@ import CreateTicketPage from './pages/CreateTicketPage'
 import RequesterTicketDetailPage from './pages/RequesterTicketDetailPage'
 import ItStaffDashboardPage from './pages/ItStaffDashboardPage'
 import ItStaffTicketDetailPage from './pages/ItStaffTicketDetailPage'
+import UserManagementPage from './pages/UserManagementPage'
+import ReferenceDataManagementPage from './pages/ReferenceDataManagementPage'
 import AccessDeniedPage from './pages/AccessDeniedPage'
 import NotFoundPage from './pages/NotFoundPage'
 import App from './App'
@@ -58,6 +60,22 @@ function AppRouter() {
           element={
             <ProtectedRoute>
               <TicketDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute roles={['ADMINISTRATOR']}>
+              <UserManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reference-data"
+          element={
+            <ProtectedRoute roles={['ADMINISTRATOR']}>
+              <ReferenceDataManagementPage />
             </ProtectedRoute>
           }
         />
