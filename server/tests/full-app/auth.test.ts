@@ -34,6 +34,14 @@ describe('POST /api/auth/login', () => {
     expect(response.status).toBe(401)
   })
 
+  it('rejects a correct password for a deactivated (inactive) user', async () => {
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'inactive-requester@toktickit.dev', password: 'InactiveRequester123!' })
+
+    expect(response.status).toBe(401)
+  })
+
   it('rejects a malformed request body', async () => {
     const response = await request(app).post('/api/auth/login').send({ email: 'not-an-email' })
 

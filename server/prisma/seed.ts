@@ -13,6 +13,7 @@ type SeedUser = {
   fullName: string
   role: Role
   mustChangePassword: boolean
+  isActive?: boolean
 }
 
 const SEED_USERS: SeedUser[] = [
@@ -44,6 +45,17 @@ const SEED_USERS: SeedUser[] = [
     role: Role.REQUESTER,
     mustChangePassword: true,
   },
+  {
+    // Lab 2 requires at least one inactive Development Requester in the seed
+    // data (labsheet Section 5.3), so login/list behavior against a
+    // deactivated account can be demonstrated and tested.
+    email: 'inactive-requester@toktickit.dev',
+    password: 'InactiveRequester123!',
+    fullName: 'Ida Inactive',
+    role: Role.REQUESTER,
+    mustChangePassword: false,
+    isActive: false,
+  },
 ]
 
 async function main() {
@@ -74,6 +86,7 @@ async function main() {
         fullName: seedUser.fullName,
         role: seedUser.role,
         mustChangePassword: seedUser.mustChangePassword,
+        isActive: seedUser.isActive ?? true,
       },
     })
   }
