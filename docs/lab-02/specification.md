@@ -80,9 +80,12 @@ Full contract in [`api-spec.md`](./api-spec.md). Summary of the Requester-releva
 **Not met — tracked as follow-up, not claimed as done:**
 - No dedicated `docs/lab-02`-scoped test files (`server/tests/lab-02/*` or `client/tests/lab-02/*`) — tests live under the `full-app` suites.
 - Existing client tests cover happy-path rendering only, not validation messages or the status-filter interaction; no Playwright E2E suite; no responsive screenshots.
-- Zen Green theme not applied (Bootstrap default in use).
 - My Tickets has no search, sort, or pagination.
 - Attachment upload/type/size validation and soft removal are not implemented.
+
+**In progress (not yet merged):**
+- Zen Green theme — implemented in [PR #30](https://github.com/Film26/toktickit_7202/pull/30), awaiting review. `dev/full-app` still renders Bootstrap default blue until it merges.
+- Priority-update and reject-resolution test coverage — implemented in [PR #29](https://github.com/Film26/toktickit_7202/pull/29), awaiting review.
 
 ## 11. Deviations from the Lab 2 Baseline
 

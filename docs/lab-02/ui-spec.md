@@ -2,21 +2,24 @@
 
 Documents the UI as actually built (`client/src/pages`, `client/src/components`), not the Zen Green mockups in the Lab 2 handout. The gap between the two is called out explicitly rather than described as if closed.
 
-## 1. Theme — current state vs. required
+## 1. Theme
 
-The app renders with Bootstrap 5's default theme plus a leftover Vite-template `index.css` (purple `--accent: #aa3bff`, unused by any component). **The Zen Green token set from the Lab 2 handout is not defined anywhere in the codebase.** No component references `#006B3C`, `#0B7A46`, `#EAF6EF`, or `#F5F7F6`.
+**Status (2026-08-28): implemented in [PR #30](https://github.com/Film26/toktickit_7202/pull/30), not yet merged into `dev/full-app`.** Everything in this section describes that PR's `client/src/index.css`, not what's on `dev/full-app` today — until #30 merges, the live app still renders Bootstrap's default blue theme.
 
-| Token | Required (Lab 2) | Actual (current) |
+Bootstrap 5's compiled CSS hardcodes most component colors per-class (`.btn-primary`'s background is a literal hex, not `var(--bs-primary)`), so a single root-variable override doesn't retheme buttons, focus rings, or nav-tabs. `index.css` instead overrides `--bs-primary-rgb` (which navbar `bg-primary` and `text-bg-primary` badges do consume directly) plus the specific hardcoded classes the app actually uses.
+
+| Token | Required (Lab 2) | Applied as |
 |---|---|---|
-| Primary | `#006B3C` | Bootstrap `--bs-primary` (`#0d6efd`, blue) |
-| Secondary / active | `#0B7A46` | Bootstrap `--bs-info` |
-| Page background | `#F5F7F6` | Bootstrap default white/`#fff` |
-| Surface / cards | white, subtle border | `.card.shadow-sm` (Bootstrap card) — matches in spirit |
-| Read-only field | soft gray-green/ivory | `.form-control.bg-light` (gray) |
-| Error | dark red text/border | Bootstrap `.alert-danger` via `ErrorAlert` |
-| Priority/status badges | not specified | Bootstrap `.badge.rounded-pill` with semantic color classes — see Section 4 |
+| Primary | `#006B3C` | `--bs-primary-rgb` (navbar, primary badges) + explicit `.btn-primary`/`.btn-outline-primary` overrides |
+| Secondary / active | `#0B7A46` | `--bs-link-color`, `.form-control:focus`/`.form-select:focus` ring, `.nav-tabs` active-tab color |
+| Pale green | `#EAF6EF` | `.table` row-hover tint (`--bs-table-hover-bg`) |
+| Page background | `#F5F7F6` | `--bs-body-bg` |
+| Surface / cards | white, subtle border | `.card { --bs-card-bg: #fff }` (forced explicitly — otherwise cards would inherit the new page background and stop standing out as a surface) |
+| Read-only field | soft gray-green/ivory | `--bs-light` / `--bs-light-rgb` (backs `.form-control.bg-light` and the `text-bg-light` "Not set" badge) |
+| Error | dark red text/border | Bootstrap `.alert-danger` via `ErrorAlert` — left at Bootstrap default, not retheme'd |
+| Priority/status badges | not specified | Bootstrap `.badge.rounded-pill` with semantic color classes — see Section 4; only the `primary`/`light` variants shifted color (via the token changes above), `info`/`warning`/`danger`/`success` are untouched |
 
-Applying the Zen Green palette is tracked as follow-up work, not done here.
+Verified with a headless-browser screenshot against the running dev server: navbar/Sign-in button computed background `rgb(0, 107, 60)`, page background matches the pale token, no console errors. Not verified: contrast ratios against WCAG AA, or the tablet/mobile breakpoints (see Section 5).
 
 ## 2. Screens
 
