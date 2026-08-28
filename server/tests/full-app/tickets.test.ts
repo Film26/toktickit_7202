@@ -147,6 +147,54 @@ describe('ticket lifecycle', () => {
     expect(response.status).toBe(403)
   })
 
+  it('lets the owning requester change requested priority while In Progress, but not once Resolved; reject-resolution reopens it', async () => {
+    // the ticket is already IN_PROGRESS at this point in the suite (see the
+    // "claim ownership ... move to In Progress" test above)
+    const whileInProgress = await request(app)
+      .patch(`/api/tickets/${ticketId}/priority`)
+      .set('Authorization', `Bearer ${requesterToken}`)
+      .send({ requestedPriority: 'URGENT' })
+    expect(whileInProgress.status).toBe(200)
+    expect(whileInProgress.body.requestedPriority).toBe('URGENT')
+
+    const resolve = await request(app)
+      .post(`/api/tickets/${ticketId}/resolve`)
+      .set('Authorization', `Bearer ${itStaffToken}`)
+      .send({ resolutionSummary: 'Temporary fix to test the priority guard' })
+    expect(resolve.status).toBe(200)
+    expect(resolve.body.status).toBe('RESOLVED')
+
+    const whileResolved = await request(app)
+      .patch(`/api/tickets/${ticketId}/priority`)
+      .set('Authorization', `Bearer ${requesterToken}`)
+      .send({ requestedPriority: 'LOW' })
+    expect(whileResolved.status).toBe(409)
+
+    const reject = await request(app)
+      .post(`/api/tickets/${ticketId}/reject-resolution`)
+      .set('Authorization', `Bearer ${requesterToken}`)
+    expect(reject.status).toBe(200)
+    expect(reject.body.status).toBe('REOPENED')
+
+    // restore to In Progress so the downstream "resolve -> confirm -> closed"
+    // test (which requires an In-Progress ticket) keeps working
+    const backToInProgress = await request(app)
+      .patch(`/api/tickets/${ticketId}/status`)
+      .set('Authorization', `Bearer ${itStaffToken}`)
+      .send({ status: 'IN_PROGRESS' })
+    expect(backToInProgress.status).toBe(200)
+  })
+
+  it('rejects a priority change from a requester who does not own the ticket', async () => {
+    const response = await request(app)
+      .patch(`/api/tickets/${ticketId}/priority`)
+      .set('Authorization', `Bearer ${itStaffToken}`)
+      .send({ requestedPriority: 'LOW' })
+    // itStaffToken is not a REQUESTER at all, so this also covers the role gate;
+    // ownership is covered by the 404-for-other-requester test above.
+    expect(response.status).toBe(403)
+  })
+
   it('walks through resolve -> confirm -> closed', async () => {
     const resolve = await request(app)
       .post(`/api/tickets/${ticketId}/resolve`)
