@@ -58,19 +58,22 @@ describe('RequesterDashboardPage', () => {
       'fetch',
       mockFetchImpl({
         '/api/auth/me': { user: REQUESTER },
-        '/api/tickets/mine': [
-          {
-            id: 1,
-            ticketNumber: 'TKT-2026-000001',
-            summary: 'Test ticket',
-            status: 'NEW',
-            requestedPriority: 'MEDIUM',
-            itPriority: null,
-            createdAt: new Date().toISOString(),
-            category: { id: 1, name: 'Hardware' },
-            owner: null,
-          },
-        ],
+        '/api/tickets/mine': {
+          tickets: [
+            {
+              id: 1,
+              ticketNumber: 'TKT-2026-000001',
+              summary: 'Test ticket',
+              status: 'NEW',
+              requestedPriority: 'MEDIUM',
+              itPriority: null,
+              createdAt: new Date().toISOString(),
+              category: { id: 1, name: 'Hardware' },
+              owner: null,
+            },
+          ],
+          pagination: { page: 1, pageSize: 10, totalCount: 1, totalPages: 1 },
+        },
       }),
     )
 
