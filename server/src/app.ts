@@ -5,6 +5,7 @@ import categoriesRoutes from './routes/categories.routes'
 import relatedSystemsRoutes from './routes/relatedSystems.routes'
 import usersRoutes from './routes/users.routes'
 import ticketsRoutes from './routes/tickets.routes'
+import attachmentsRoutes from './routes/attachments.routes'
 
 const app = express()
 
@@ -20,5 +21,6 @@ app.use('/api/categories', categoriesRoutes)
 app.use('/api/related-systems', relatedSystemsRoutes)
 app.use('/api/users', usersRoutes)
 app.use('/api/tickets', ticketsRoutes)
+app.use('/api/attachments', attachmentsRoutes)
 
 export default app

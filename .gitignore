@@ -25,3 +25,6 @@ Thumbs.db
 # Vite / testing
 coverage/
 *.tsbuildinfo
+
+# Uploaded attachment files
+server/uploads/

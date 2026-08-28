@@ -1,4 +1,4 @@
-import { apiFetch } from './client'
+import { apiFetch, apiFetchBlob } from './client'
 import type { Role } from './auth'
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
@@ -20,7 +20,22 @@ export type TicketSummary = {
 export type Participant = { id: number; fullName: string; role: Role }
 export type TicketComment = { id: number; body: string; createdAt: string; author: Participant }
 export type TicketAction = { id: number; description: string; createdAt: string; updatedAt: string; author: Participant }
-export type TicketAttachment = { id: number; filename: string; url: string; createdAt: string; uploader: Participant }
+export type TicketAttachment = {
+  id: number
+  filename: string
+  mimeType: string
+  sizeBytes: number
+  isActive: boolean
+  createdAt: string
+  uploader: Participant
+  removedAt: string | null
+  removedReason: string | null
+  removedBy: Participant | null
+}
+
+export const ALLOWED_ATTACHMENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+export const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024
+export const MAX_ACTIVE_ATTACHMENTS = 5
 
 export type TicketDetail = {
   id: number
@@ -126,6 +141,24 @@ export function updateAction(token: string, id: number, actionId: number, descri
   return apiFetch<TicketAction>(`/api/tickets/${id}/actions/${actionId}`, { method: 'PATCH', token, body: { description } })
 }
 
-export function addAttachment(token: string, id: number, filename: string, url: string) {
-  return apiFetch<TicketAttachment>(`/api/tickets/${id}/attachments`, { method: 'POST', token, body: { filename, url } })
+export function addAttachment(token: string, id: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return apiFetch<TicketAttachment>(`/api/tickets/${id}/attachments`, { method: 'POST', token, body: formData })
+}
+
+export async function downloadAttachment(token: string, attachmentId: number, fallbackFilename: string) {
+  const { blob, filename } = await apiFetchBlob(`/api/attachments/${attachmentId}/download`, token)
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = filename ?? fallbackFilename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(objectUrl)
+}
+
+export function removeAttachment(token: string, attachmentId: number, reason: string) {
+  return apiFetch<TicketAttachment>(`/api/attachments/${attachmentId}`, { method: 'DELETE', token, body: { reason } })
 }
