@@ -80,12 +80,12 @@ Full contract in [`api-spec.md`](./api-spec.md). Summary of the Requester-releva
 **Not met — tracked as follow-up, not claimed as done:**
 - No dedicated `docs/lab-02`-scoped test files (`server/tests/lab-02/*` or `client/tests/lab-02/*`) — tests live under the `full-app` suites.
 - Existing client tests cover happy-path rendering only, not validation messages or the status-filter interaction; no Playwright E2E suite; no responsive screenshots.
-- Attachment upload/type/size validation and soft removal are not implemented.
 
 **In progress (not yet merged):**
 - Zen Green theme — implemented in [PR #30](https://github.com/Film26/toktickit_7202/pull/30), awaiting review. `dev/full-app` still renders Bootstrap default blue until it merges.
 - Priority-update and reject-resolution test coverage — implemented in [PR #29](https://github.com/Film26/toktickit_7202/pull/29), awaiting review.
 - My Tickets search, sort, and pagination — implemented in [PR #31](https://github.com/Film26/toktickit_7202/pull/31), awaiting review. `GET /api/tickets/mine` still returns a bare array with no search/sort/pagination on `dev/full-app` until it merges (see BR-09, which will need updating once it does — the response shape changes to `{ tickets, pagination }`).
+- Attachment upload type/size validation, the 5-active-attachment cap, download, and soft removal — implemented in [PR #32](https://github.com/Film26/toktickit_7202/pull/32), awaiting review. Until it merges, BR-08 below still describes the live behavior on `dev/full-app` (metadata-only, no real file); once merged, BR-08 needs rewriting to describe the new real-file behavior instead.
 
 ## 11. Deviations from the Lab 2 Baseline
 

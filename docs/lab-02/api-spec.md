@@ -59,11 +59,28 @@ Success `201`: created comment with `author: {id, fullName, role}`.
 Errors: `400` empty body; `404` ticket not found / not accessible.
 
 ### POST /api/tickets/:id/attachments
-Roles: any authenticated user with access to the ticket. Request: `{ "filename": string (min 1), "url": string (must be a valid URL) }`
-Success `201`: created attachment record with `uploader: {id, fullName, role}`.
-Errors: `400` missing filename or invalid URL; `404` ticket not found / not accessible.
+**Status (2026-08-28): rewritten in [PR #32](https://github.com/Film26/toktickit_7202/pull/32), not yet merged.** The description below is what #32 implements; `dev/full-app` today still has the old metadata-only version (see "Current behavior on `dev/full-app`" at the end of this section).
 
-**Known gap:** this is a metadata-only record — the client sends a URL it already has, not a file. There is no multipart upload endpoint, no server-side MIME-type or size check, no 5-attachments-per-ticket cap, no download endpoint, and no removal (soft or otherwise). The Lab 2 attachment rules (5 MB limit, JPG/JPEG/PNG/WEBP/PDF only, soft removal, blocked download after removal) are **not implemented** by this endpoint. Documented here rather than glossed over.
+Roles: any authenticated user with access to the ticket. Request: `multipart/form-data` with a single field `file`.
+Success `201`: created attachment record `{ id, filename, storedFilename, mimeType, sizeBytes, isActive, createdAt, uploader: {id, fullName, role} }`. `filename` is the sanitized original name (display only); `storedFilename` is the random on-disk name.
+Errors: `400` no file / unsupported MIME type (JPG/JPEG, PNG, WEBP, PDF only) / over 5 MB; `404` ticket not found or not accessible; `409` the ticket already has 5 active attachments.
+
+### GET /api/attachments/:id
+*New in PR #32.* Roles: any authenticated user with access to the attachment's ticket.
+Success `200`: the attachment record, including `removedBy`/`removedAt`/`removedReason` when inactive.
+Errors: `400` invalid id; `404` not found / not accessible.
+
+### GET /api/attachments/:id/download
+*New in PR #32.* Roles: any authenticated user with access to the attachment's ticket.
+Success `200`: streams the file with `Content-Disposition: attachment; filename="<original name>"`.
+Errors: `404` not found / not accessible; `410` the attachment has been soft-removed.
+
+### DELETE /api/attachments/:id
+*New in PR #32.* Roles: the uploader, or IT Staff/Administrator. Request: `{ "reason": string (min 1) }`
+Success `200`: the updated attachment with `isActive: false`, `removedAt`, `removedById`/`removedBy`, `removedReason`. The row is never deleted — metadata stays visible, only `GET .../download` is blocked afterward.
+Errors: `400` missing reason; `403` caller has ticket access but is neither the uploader nor staff; `404` not found / not accessible; `409` already removed.
+
+**Current behavior on `dev/full-app` (until #32 merges):** `POST /api/tickets/:id/attachments` still takes JSON `{ "filename": string, "url": string }` — a metadata-only record for a URL the client already has, with no type/size validation, no 5-attachment cap, no download endpoint, and no removal capability. Request: `{ "filename": string (min 1), "url": string (must be a valid URL) }`. Errors: `400` missing filename or invalid URL; `404` ticket not found / not accessible.
 
 ## Status codes in use
 
@@ -75,4 +92,5 @@ Errors: `400` missing filename or invalid URL; `404` ticket not found / not acce
 | 401 | Missing/invalid JWT, or bad login credentials |
 | 403 | Authenticated but wrong role for this action |
 | 404 | Resource does not exist, or exists but caller has no ownership/access (these two cases are intentionally not distinguished) |
-| 409 | Valid request, but the ticket's current `status` does not allow this transition |
+| 409 | Valid request, but the ticket's current `status` does not allow this transition, or (PR #32) the ticket is already at the 5-active-attachment cap, or the attachment is already removed |
+| 410 | (PR #32) The attachment exists and is accessible, but has been soft-removed - download is blocked |
