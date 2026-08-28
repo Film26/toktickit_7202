@@ -4,7 +4,7 @@ Written against tests that actually exist. There is no `server/tests/lab-02/` di
 
 ## 1. Test Strategy
 
-API-level coverage (Vitest + Supertest against the real Express app + a `.env.test` Postgres database) exists for every ticket-lifecycle endpoint touched by a Requester, plus auth and reference-data management. There is no UI component test, no visual/style assertion, no responsive screenshot, and no E2E test anywhere in the repo (`client/src/**/*.test.tsx` matches zero files; no `e2e/` directory exists). This is reported as-is rather than backfilled with placeholder claims.
+API-level coverage (Vitest + Supertest against the real Express app + a `.env.test` Postgres database) exists for every ticket-lifecycle endpoint touched by a Requester, plus auth and reference-data management. Client-side coverage also exists: React Testing Library component tests under `client/tests/` (note: not `client/src/` — the tests live in a separate `client/tests/` tree per `client/vite.config.ts`'s `test.include`) cover the main Requester, IT Staff, and Admin pages against a mocked `fetch`. There is no visual/style assertion, no responsive screenshot, and no E2E test anywhere in the repo (no `e2e/` directory exists). This is reported as-is rather than backfilled with placeholder claims.
 
 ## 2. Planned vs. Actual Test Table
 
@@ -21,8 +21,14 @@ API-level coverage (Vitest + Supertest against the real Express app + a `.env.te
 | API-08 | API | AC-08 | `GET /api/tickets/mine` returns only the caller's tickets | `server/tests/full-app/tickets.test.ts` ("lets the requester see it in their own list") | Pass |
 | API-09 | API | FR-09 | Public category/related-system list excludes inactive rows | `server/tests/full-app/referenceData.test.ts` | Pass |
 | API-10 | API | BR-03 | Login returns a JWT + user profile; rejects bad credentials | `server/tests/full-app/auth.test.ts` | Pass |
-| UI-01 | UI | AC-01 | Create Ticket form: validation message on empty submit, no API call | — | **Not implemented** — no client test files exist |
-| UI-02 | UI | — | My Tickets: status filter re-fetches and re-renders table | — | **Not implemented** |
+| UI-01 | UI | AC-01 | Create Ticket form renders and loads categories from the API | `client/tests/full-app/pages.test.tsx` ("CreateTicketPage") | Pass |
+| UI-02 | UI | AC-08 | My Tickets renders the Requester's own ticket list from the API | `client/tests/full-app/pages.test.tsx` ("RequesterDashboardPage") | Pass |
+| UI-03 | UI | AC-04 | Ticket Detail renders ticket fields, comments, and actions for a staff viewer | `client/tests/full-app/pages.test.tsx` ("TicketDetailView") | Pass |
+| UI-04 | UI | — | IT Staff all-tickets list includes the Requester column | `client/tests/full-app/pages.test.tsx` ("ItStaffDashboardPage") | Pass |
+| UI-05 | UI | — | Admin: create a user, see the returned temporary password | `client/tests/full-app/adminPages.test.tsx` ("UserManagementPage") | Pass |
+| UI-06 | UI | — | Admin: reference-data list includes inactive rows in the manage view | `client/tests/full-app/adminPages.test.tsx` ("ReferenceDataManagementPage") | Pass |
+| UI-07 | UI | — | Create Ticket: validation message on empty submit, no API call | — | **Not implemented** — existing tests cover the happy path (data loads), not client-side validation feedback |
+| UI-08 | UI | — | My Tickets: status filter re-fetches and re-renders the table | — | **Not implemented** |
 | E2E-01 | E2E | AC-01 | Full create → find-in-My-Tickets flow across a real browser | — | **Not implemented** — no `e2e/` directory exists |
 | VIS-01 | Visual | — | Desktop/tablet/mobile screenshots against `ui-spec.md` | — | **Not implemented** — no screenshot tooling configured |
 
@@ -37,27 +43,28 @@ API-level coverage (Vitest + Supertest against the real Express app + a `.env.te
 | AC-05 | none | Priority-update endpoint is completely untested |
 | AC-06 | API-06 | Reject-resolution path untested |
 | AC-07 | API-07 | — |
-| AC-08 | API-08 | No search/sort/pagination to test (not implemented — see `specification.md` BR-09) |
+| AC-08 | API-08, UI-02 | No search/sort/pagination to test (not implemented — see `specification.md` BR-09) |
 
 ## 4. Responsive and Visual Checklist
 
-Not started. No Playwright config, no `artifacts/lab-02/screenshots/` directory, and no manual checklist has been produced. `ui-spec.md` Section 5 records the layout behavior by code inspection only, not by rendered evidence.
+Not started. No Playwright config, no `artifacts/lab-02/screenshots/` directory, and no manual checklist has been produced. `ui-spec.md` Section 5 records the layout behavior by code inspection only, not by rendered evidence. Component-level UI tests exist (Section 2) but they assert data rendering, not responsive layout or visual style.
 
 ## 5. Test Commands
 
 ```bash
 npm test --prefix server   # runs all Vitest+Supertest suites, including the ones referenced above
-npm test --prefix client   # currently 0 test files match; exits with no tests to run
+npm test --prefix client   # runs client/tests/**/*.test.{ts,tsx} (4 files, 13 tests as of this writing)
 ```
 
 `server/package.json` also defines `test:prepare` (`dotenv -e .env.test -- prisma migrate deploy && ... seed.ts`), needed once to stand up the `.env.test` database before `npm test --prefix server` will pass.
 
 ## 6. Final Results
 
-As of this writing, `npm test --prefix server` passes in full on `dev/full-app` (all suites in `server/tests/full-app/` and `server/tests/lab-01/`). No client or E2E command exists to report a result for.
+As of this writing, both `npm test --prefix server` (all suites in `server/tests/full-app/` and `server/tests/lab-01/`) and `npm test --prefix client` (4 test files, 13 tests, all passing) succeed on `dev/full-app`. No E2E command exists to report a result for.
 
 ## 7. Known Limitations or Deferred Tests
 
-- `PATCH /api/tickets/:id/priority` and `POST /api/tickets/:id/reject-resolution` are implemented but untested (API-05, API-06b).
+- `PATCH /api/tickets/:id/priority` and `POST /api/tickets/:id/reject-resolution` are implemented but untested at the API level (API-05, API-06b).
+- Existing client tests cover happy-path data rendering only — no test exercises client-side validation messages, the My Tickets status-filter interaction, or any error/loading state.
 - Attachment upload has no validation to test against (no size/type limit, no removal) — see `specification.md` BR-08. Writing a test for the Lab 2 attachment rules requires implementing them first.
-- No client component tests, no E2E suite, no visual/responsive evidence — all deferred, not silently skipped or hidden.
+- No E2E suite, no visual/responsive evidence — deferred, not silently skipped or hidden.

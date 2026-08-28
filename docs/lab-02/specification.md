@@ -74,11 +74,12 @@ Full contract in [`api-spec.md`](./api-spec.md). Summary of the Requester-releva
 **Met today:**
 - All API-level FRs and BRs above are covered by passing Supertest suites in `server/tests/full-app/` (see [`tests.md`](./tests.md)).
 - Ownership enforcement (AC-03/AC-04) is tested and passing.
-- `npm test --prefix server` passes on `dev/full-app`.
+- Client component tests (React Testing Library, mocked `fetch`) exist for the main Requester/IT Staff/Admin pages under `client/tests/full-app/`.
+- `npm test --prefix server` and `npm test --prefix client` both pass on `dev/full-app`.
 
 **Not met — tracked as follow-up, not claimed as done:**
-- No dedicated `docs/lab-02`-scoped test files (`server/tests/lab-02/*`) — tests live under `server/tests/full-app/`.
-- No client-side UI component tests, no Playwright E2E suite, no responsive screenshots.
+- No dedicated `docs/lab-02`-scoped test files (`server/tests/lab-02/*` or `client/tests/lab-02/*`) — tests live under the `full-app` suites.
+- Existing client tests cover happy-path rendering only, not validation messages or the status-filter interaction; no Playwright E2E suite; no responsive screenshots.
 - Zen Green theme not applied (Bootstrap default in use).
 - My Tickets has no search, sort, or pagination.
 - Attachment upload/type/size validation and soft removal are not implemented.
