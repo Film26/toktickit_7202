@@ -54,7 +54,9 @@ Read-only header card: Ticket No., Ticket Date, Category, Related System, Reques
 
 ## 5. Responsive behavior
 
-No custom breakpoints are defined; layout responsiveness comes entirely from Bootstrap's grid (`container`, `row g-*`, `col-md-*`), whose breakpoints (`md` 768px, `lg` 992px) roughly line up with the Lab 2 tablet/desktop cutoffs. There is no dedicated mobile card layout for `TicketTable` — the table relies on Bootstrap's `.table-responsive` horizontal-scroll wrapper on narrow viewports rather than switching to a card list. No Playwright screenshots or a visual checklist exist yet to verify this against the three required viewports (desktop ≥992px, tablet 768–991px, mobile <768px) — see `tests.md`.
+No custom breakpoints are defined; layout responsiveness comes entirely from Bootstrap's grid (`container`, `row g-*`, `col-md-*`), whose breakpoints (`md` 768px, `lg` 992px) roughly line up with the Lab 2 tablet/desktop cutoffs. There is no dedicated mobile card layout for `TicketTable` — the table relies on Bootstrap's `.table-responsive` horizontal-scroll wrapper on narrow viewports rather than switching to a card list.
+
+**Verified (2026-08-28), on PR #30's branch before merge, against Login/My Tickets/Create Ticket at desktop (1280px), tablet (800px), and mobile (375px):** no *page-level* horizontal scroll at any of the three (checked programmatically: `document.documentElement.scrollWidth` never exceeds `clientWidth`). The `TicketTable` columns do overflow *within* their own `.table-responsive` container at tablet and mobile widths — e.g. the Status column is visually clipped by the card edge on mobile — which is the documented gap above (no mobile card layout), not new page-level overflow. Not yet verified: Ticket Detail or the Attachments tab (both depend on PR #32, not yet merged), or a full visual checklist against the color/spacing tokens.
 
 ## 6. Accessibility
 
