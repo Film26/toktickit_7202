@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../../src/auth/AuthContext'
@@ -118,7 +119,38 @@ describe('CreateTicketPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('option', { name: 'Hardware' })).toBeInTheDocument()
     })
-    expect(screen.getByLabelText('Summary')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Summary/)).toBeInTheDocument()
+  })
+
+  it('shows field-level validation messages on an empty submit, without calling the create-ticket API', async () => {
+    const fetchMock = mockFetchImpl({
+      '/api/auth/me': { user: REQUESTER },
+      '/api/categories': [{ id: 1, name: 'Hardware' }],
+      '/api/related-systems': [],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <MemoryRouter>
+        <AuthProvider>
+          <CreateTicketPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Hardware' })).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Submit Ticket' }))
+
+    expect(await screen.findByText('Summary is required.')).toBeInTheDocument()
+    expect(screen.getByText('Description is required.')).toBeInTheDocument()
+
+    const postedTicketCreation = fetchMock.mock.calls.some(
+      ([url, options]) => String(url).includes('/api/tickets') && !String(url).includes('categories') && !String(url).includes('related-systems') && (options as { method?: string } | undefined)?.method === 'POST',
+    )
+    expect(postedTicketCreation).toBe(false)
   })
 })
 
