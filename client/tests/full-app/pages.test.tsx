@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../../src/auth/AuthContext'
@@ -88,6 +89,96 @@ describe('RequesterDashboardPage', () => {
     await waitFor(() => {
       expect(screen.getByText('TKT-2026-000001')).toBeInTheDocument()
     })
+  })
+
+  it('re-fetches and re-renders when the status filter changes', async () => {
+    const fetchMock = vi.fn((url: string) => {
+      const path = url.replace('http://localhost:4000', '')
+      if (path.startsWith('/api/auth/me')) return Promise.resolve(jsonResponse({ user: REQUESTER }))
+      if (path.includes('status=RESOLVED')) {
+        return Promise.resolve(
+          jsonResponse({
+            tickets: [
+              {
+                id: 2,
+                ticketNumber: 'TKT-2026-000002',
+                summary: 'Resolved ticket',
+                status: 'RESOLVED',
+                requestedPriority: 'LOW',
+                itPriority: null,
+                createdAt: new Date().toISOString(),
+                category: { id: 1, name: 'Hardware' },
+                owner: null,
+              },
+            ],
+            pagination: { page: 1, pageSize: 10, totalCount: 1, totalPages: 1 },
+          }),
+        )
+      }
+      return Promise.resolve(
+        jsonResponse({
+          tickets: [
+            {
+              id: 1,
+              ticketNumber: 'TKT-2026-000001',
+              summary: 'New ticket',
+              status: 'NEW',
+              requestedPriority: 'MEDIUM',
+              itPriority: null,
+              createdAt: new Date().toISOString(),
+              category: { id: 1, name: 'Hardware' },
+              owner: null,
+            },
+          ],
+          pagination: { page: 1, pageSize: 10, totalCount: 1, totalPages: 1 },
+        }),
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <MemoryRouter>
+        <AuthProvider>
+          <RequesterDashboardPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('TKT-2026-000001')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Resolved' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('TKT-2026-000002')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('TKT-2026-000001')).not.toBeInTheDocument()
+  })
+
+  it('shows a distinct message when a filter matches nothing, vs. having no tickets at all', async () => {
+    vi.stubGlobal(
+      'fetch',
+      mockFetchImpl({
+        '/api/auth/me': { user: REQUESTER },
+        '/api/tickets/mine': { tickets: [], pagination: { page: 1, pageSize: 10, totalCount: 0, totalPages: 1 } },
+      }),
+    )
+
+    render(
+      <MemoryRouter>
+        <AuthProvider>
+          <RequesterDashboardPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+
+    // no filter active - the "you have zero tickets" message
+    expect(await screen.findByText("You don't have any tickets yet. Create one to get started.")).toBeInTheDocument()
+
+    // activate a status filter - the message must change to the no-results variant
+    await userEvent.click(screen.getByRole('button', { name: 'Resolved' }))
+    expect(await screen.findByText('No tickets match your search or filter.')).toBeInTheDocument()
   })
 })
 

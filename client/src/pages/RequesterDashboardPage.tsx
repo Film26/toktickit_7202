@@ -125,7 +125,18 @@ function RequesterDashboardPage() {
 
       <div className="card shadow-sm">
         <div className="card-body">
-          {isLoading ? <LoadingSpinner /> : <TicketTable tickets={tickets} />}
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <TicketTable
+              tickets={tickets}
+              emptyMessage={
+                status !== 'ALL' || search
+                  ? 'No tickets match your search or filter.'
+                  : "You don't have any tickets yet. Create one to get started."
+              }
+            />
+          )}
         </div>
       </div>
 

@@ -235,6 +235,22 @@ describe('My Tickets: search, sort, and pagination', () => {
     ])
   })
 
+  it('filters by status in combination with search', async () => {
+    // all 3 marker tickets are freshly created and still NEW
+    const newOnly = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&status=NEW&pageSize=10`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(newOnly.status).toBe(200)
+    expect(newOnly.body.tickets).toHaveLength(3)
+
+    const resolvedOnly = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&status=RESOLVED&pageSize=10`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(resolvedOnly.status).toBe(200)
+    expect(resolvedOnly.body.tickets).toHaveLength(0)
+    expect(resolvedOnly.body.pagination.totalCount).toBe(0)
+  })
+
   it('paginates with correct metadata', async () => {
     const page1 = await request(app)
       .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&sort=summary&order=asc&page=1&pageSize=2`)

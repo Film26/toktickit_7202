@@ -7,13 +7,14 @@ import EmptyState from './EmptyState'
 type TicketTableProps = {
   tickets: TicketSummary[]
   showRequester?: boolean
+  emptyMessage?: string
 }
 
-function TicketTable({ tickets, showRequester = false }: TicketTableProps) {
+function TicketTable({ tickets, showRequester = false, emptyMessage = 'No tickets to show.' }: TicketTableProps) {
   const navigate = useNavigate()
 
   if (tickets.length === 0) {
-    return <EmptyState message="No tickets to show." />
+    return <EmptyState message={emptyMessage} />
   }
 
   return (
