@@ -204,6 +204,13 @@ describe('attachment upload, download, and soft removal', () => {
       .set('Authorization', `Bearer ${requesterToken}`)
     expect(download.status).toBe(410)
 
+    // there is no separate "preview" route or static file serving that
+    // could bypass the isActive check above - the only way to reach the
+    // file's bytes at all is the (now-blocked) download endpoint. Guessing
+    // the real on-disk filename via a static-style URL must not work either.
+    const guessedStaticUrl = await request(app).get(`/uploads/attachments/${metadata.body.storedFilename}`)
+    expect(guessedStaticUrl.status).toBe(404)
+
     // removing it again is rejected
     const again = await request(app)
       .delete(`/api/attachments/${attachmentId}`)
