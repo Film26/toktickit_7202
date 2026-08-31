@@ -119,7 +119,7 @@ describe('CreateTicketPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('option', { name: 'Hardware' })).toBeInTheDocument()
     })
-    expect(screen.getByLabelText('Summary')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Summary/)).toBeInTheDocument()
   })
 
   it('shows field-level validation messages on an empty submit, without calling the create-ticket API', async () => {

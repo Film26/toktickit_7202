@@ -170,7 +170,7 @@ function CreateTicketPage() {
           <div className="row g-3 mb-3">
             <div className="col-md-6">
               <label htmlFor="category" className="form-label">
-                Category
+                Category <span className="text-danger">*</span>
               </label>
               <select
                 id="category"
@@ -209,7 +209,7 @@ function CreateTicketPage() {
 
           <div className="mb-3">
             <label htmlFor="summary" className="form-label">
-              Summary
+              Summary <span className="text-danger">*</span>
             </label>
             <input
               id="summary"
@@ -227,7 +227,7 @@ function CreateTicketPage() {
 
           <div className="mb-3">
             <label htmlFor="description" className="form-label">
-              Description
+              Description <span className="text-danger">*</span>
             </label>
             <textarea
               id="description"
