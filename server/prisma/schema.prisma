@@ -39,12 +39,13 @@ model User {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  ticketsRequested Ticket[]        @relation("TicketRequester")
-  ticketsOwned     Ticket[]        @relation("TicketOwner")
-  publicComments   PublicComment[]
-  internalNotes    InternalNote[]
-  actionsTaken     ActionTaken[]
-  attachments      Attachment[]
+  ticketsRequested    Ticket[]        @relation("TicketRequester")
+  ticketsOwned        Ticket[]        @relation("TicketOwner")
+  publicComments      PublicComment[]
+  internalNotes       InternalNote[]
+  actionsTaken        ActionTaken[]
+  attachmentsUploaded Attachment[]    @relation("AttachmentUploader")
+  attachmentsRemoved  Attachment[]    @relation("AttachmentRemover")
 }
 
 model Category {
@@ -129,12 +130,21 @@ model ActionTaken {
 }
 
 model Attachment {
-  id         Int      @id @default(autoincrement())
-  ticketId   Int
-  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  uploaderId Int
-  uploader   User     @relation(fields: [uploaderId], references: [id], onDelete: Restrict)
-  filename   String
-  url        String
-  createdAt  DateTime @default(now())
+  id             Int       @id @default(autoincrement())
+  ticketId       Int
+  ticket         Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploaderId     Int
+  uploader       User      @relation("AttachmentUploader", fields: [uploaderId], references: [id], onDelete: Restrict)
+  filename       String
+  storedFilename String
+  mimeType       String
+  sizeBytes      Int
+  isActive       Boolean   @default(true)
+  removedAt      DateTime?
+  removedById    Int?
+  removedBy      User?     @relation("AttachmentRemover", fields: [removedById], references: [id], onDelete: SetNull)
+  removedReason  String?
+  createdAt      DateTime  @default(now())
+
+  @@index([ticketId])
 }

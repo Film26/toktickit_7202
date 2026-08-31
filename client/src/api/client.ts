@@ -20,7 +20,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const isFormData = options.body instanceof FormData
+  const headers: Record<string, string> = {}
+  if (!isFormData) {
+    // omit Content-Type for FormData - the browser sets it (with the
+    // multipart boundary) automatically, which JSON.stringify below would break
+    headers['Content-Type'] = 'application/json'
+  }
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`
   }
@@ -28,7 +34,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? 'GET',
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: isFormData ? (options.body as FormData) : options.body !== undefined ? JSON.stringify(options.body) : undefined,
   })
 
   const contentType = response.headers.get('content-type') ?? ''
@@ -40,4 +46,25 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   }
 
   return data as T
+}
+
+// For endpoints that return a raw file (e.g. attachment download) rather
+// than JSON - returns the Blob plus a best-effort filename from
+// Content-Disposition, or throws ApiError on failure using whatever error
+// body the server provided.
+export async function apiFetchBlob(path: string, token: string): Promise<{ blob: Blob; filename: string | null }> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type') ?? ''
+    const data: unknown = contentType.includes('application/json') ? await response.json() : undefined
+    const message = isRecord(data) && typeof data.error === 'string' ? data.error : `Request failed with status ${response.status}`
+    throw new ApiError(response.status, message)
+  }
+
+  const disposition = response.headers.get('content-disposition') ?? ''
+  const match = /filename="?([^"]+)"?/.exec(disposition)
+  return { blob: await response.blob(), filename: match ? match[1] : null }
 }

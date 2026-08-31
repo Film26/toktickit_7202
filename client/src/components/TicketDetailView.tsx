@@ -16,6 +16,11 @@ import {
   addNote,
   addAction,
   addAttachment,
+  downloadAttachment,
+  removeAttachment,
+  ALLOWED_ATTACHMENT_TYPES,
+  MAX_ATTACHMENT_SIZE_BYTES,
+  MAX_ACTIVE_ATTACHMENTS,
   type TicketDetail,
   type Priority,
 } from '../api/tickets'
@@ -42,6 +47,12 @@ function formatDateTime(iso: string | null) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 function Field({ label, value, colClass = 'col-md-3' }: { label: string; value: string; colClass?: string }) {
   return (
     <div className={colClass}>
@@ -64,8 +75,10 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
 
   const [itStaffUsers, setItStaffUsers] = useState<ManagedUser[]>([])
   const [resolutionSummary, setResolutionSummary] = useState('')
-  const [attachmentFilename, setAttachmentFilename] = useState('')
-  const [attachmentUrl, setAttachmentUrl] = useState('')
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
+  const [removingAttachmentId, setRemovingAttachmentId] = useState<number | null>(null)
+  const [removalReason, setRemovalReason] = useState('')
 
   const isStaff = user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR'
   const isRequester = user?.role === 'REQUESTER'
@@ -411,55 +424,149 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
 
           {tab === 'attachments' && (
             <>
-              <form
-                className="row g-2 mb-3"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!attachmentFilename.trim() || !attachmentUrl.trim()) return
-                  runAction(() => addAttachment(token, ticket.id, attachmentFilename.trim(), attachmentUrl.trim())).then(
-                    () => {
-                      setAttachmentFilename('')
-                      setAttachmentUrl('')
-                    },
-                  )
-                }}
-              >
-                <div className="col-md-4">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Filename"
-                    value={attachmentFilename}
-                    onChange={(event) => setAttachmentFilename(event.target.value)}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <input
-                    type="url"
-                    className="form-control"
-                    placeholder="https://..."
-                    value={attachmentUrl}
-                    onChange={(event) => setAttachmentUrl(event.target.value)}
-                  />
-                </div>
-                <div className="col-md-2">
-                  <button type="submit" className="btn btn-primary w-100">
-                    Add
-                  </button>
-                </div>
-              </form>
+              {(() => {
+                const activeCount = ticket.attachments.filter((attachment) => attachment.isActive).length
+                const limitReached = activeCount >= MAX_ACTIVE_ATTACHMENTS
+
+                return (
+                  <form
+                    className="mb-3"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      if (!attachmentFile) return
+                      runAction(() => addAttachment(token, ticket.id, attachmentFile)).then(() => {
+                        setAttachmentFile(null)
+                        setAttachmentError(null)
+                      })
+                    }}
+                  >
+                    {limitReached ? (
+                      <p className="text-muted small mb-2">
+                        This ticket already has the maximum of {MAX_ACTIVE_ATTACHMENTS} active attachments. Remove one before
+                        adding another.
+                      </p>
+                    ) : (
+                      <div className="row g-2 align-items-center">
+                        <div className="col-md-8">
+                          <input
+                            type="file"
+                            className="form-control"
+                            accept={ALLOWED_ATTACHMENT_TYPES.join(',')}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0] ?? null
+                              setAttachmentError(null)
+                              if (file && !ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+                                setAttachmentError('Only JPG, PNG, WEBP, or PDF files are allowed.')
+                                setAttachmentFile(null)
+                                event.target.value = ''
+                                return
+                              }
+                              if (file && file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+                                setAttachmentError('File exceeds the 5 MB limit.')
+                                setAttachmentFile(null)
+                                event.target.value = ''
+                                return
+                              }
+                              setAttachmentFile(file)
+                            }}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <button type="submit" className="btn btn-primary w-100" disabled={!attachmentFile}>
+                            Upload
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {attachmentError && <div className="text-danger small mt-2">{attachmentError}</div>}
+                  </form>
+                )
+              })()}
+
               {ticket.attachments.length === 0 ? (
                 <p className="text-muted text-center py-3">No attachments yet.</p>
               ) : (
                 <ul className="list-group list-group-flush">
                   {ticket.attachments.map((attachment) => (
-                    <li className="list-group-item px-0 d-flex justify-content-between align-items-center" key={attachment.id}>
-                      <a href={attachment.url} target="_blank" rel="noreferrer">
-                        {attachment.filename}
-                      </a>
-                      <span className="text-muted small">
-                        {attachment.uploader.fullName} - {formatDateTime(attachment.createdAt)}
-                      </span>
+                    <li className="list-group-item px-0" key={attachment.id}>
+                      <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                        <div>
+                          <span className={attachment.isActive ? '' : 'text-muted text-decoration-line-through'}>
+                            {attachment.filename}
+                          </span>{' '}
+                          <span className="text-muted small">({formatFileSize(attachment.sizeBytes)})</span>
+                          <div className="text-muted small">
+                            {attachment.uploader.fullName} - {formatDateTime(attachment.createdAt)}
+                          </div>
+                          {!attachment.isActive && (
+                            <div className="text-muted small fst-italic">
+                              Removed by {attachment.removedBy?.fullName ?? 'unknown'} on {formatDateTime(attachment.removedAt)}
+                              {attachment.removedReason ? `: ${attachment.removedReason}` : ''}
+                            </div>
+                          )}
+                        </div>
+                        {attachment.isActive && (
+                          <div className="d-flex gap-2 text-nowrap">
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary btn-sm"
+                              onClick={() =>
+                                downloadAttachment(token, attachment.id, attachment.filename).catch((err) =>
+                                  setActionError(err instanceof ApiError ? err.message : 'Download failed.'),
+                                )
+                              }
+                            >
+                              Download
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() => {
+                                setRemovingAttachmentId(attachment.id)
+                                setRemovalReason('')
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {removingAttachmentId === attachment.id && (
+                        <form
+                          className="d-flex gap-2 mt-2"
+                          onSubmit={(event) => {
+                            event.preventDefault()
+                            if (!removalReason.trim()) return
+                            runAction(() => removeAttachment(token, attachment.id, removalReason.trim())).then(() => {
+                              setRemovingAttachmentId(null)
+                              setRemovalReason('')
+                            })
+                          }}
+                        >
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="Reason for removal..."
+                            value={removalReason}
+                            onChange={(event) => setRemovalReason(event.target.value)}
+                            autoFocus
+                          />
+                          <button type="submit" className="btn btn-danger btn-sm text-nowrap" disabled={!removalReason.trim()}>
+                            Confirm removal
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => {
+                              setRemovingAttachmentId(null)
+                              setRemovalReason('')
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </form>
+                      )}
                     </li>
                   ))}
                 </ul>

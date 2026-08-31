@@ -1,9 +1,11 @@
 import type { RequestHandler } from 'express'
+import fs from 'node:fs'
 import { z } from 'zod'
 import type { TicketStatus } from '@prisma/client'
 import prisma from '../db'
 import { formatTicketNumber } from '../lib/ticketNumber'
 import { loadTicketForUser, serializeTicket, userCanAccessTicket } from '../lib/ticketAccess'
+import { MAX_ACTIVE_ATTACHMENTS_PER_TICKET, sanitizeOriginalFilename } from '../lib/attachmentStorage'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const
 const STATUSES = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED'] as const
@@ -429,24 +431,40 @@ export const updateAction: RequestHandler = async (req, res) => {
   }
 }
 
-const attachmentSchema = z.object({ filename: z.string().min(1), url: z.string().url() })
-
 export const addAttachment: RequestHandler = async (req, res) => {
   const ticketId = parseId(req.params.id)
-  const parsed = attachmentSchema.safeParse(req.body)
-  if (ticketId === null || !parsed.success) {
-    res.status(400).json({ error: 'filename and a valid url are required' })
+  if (ticketId === null) {
+    res.status(400).json({ error: 'Invalid ticket id' })
+    return
+  }
+  if (!req.file) {
+    res.status(400).json({ error: 'A file is required (field name "file")' })
     return
   }
 
   const hasAccess = await userCanAccessTicket(ticketId, req.user!)
   if (!hasAccess) {
+    await fs.promises.unlink(req.file.path).catch(() => {})
     res.status(404).json({ error: 'Ticket not found' })
     return
   }
 
+  const activeCount = await prisma.attachment.count({ where: { ticketId, isActive: true } })
+  if (activeCount >= MAX_ACTIVE_ATTACHMENTS_PER_TICKET) {
+    await fs.promises.unlink(req.file.path).catch(() => {})
+    res.status(409).json({ error: `A ticket may have at most ${MAX_ACTIVE_ATTACHMENTS_PER_TICKET} active attachments` })
+    return
+  }
+
   const attachment = await prisma.attachment.create({
-    data: { ticketId, uploaderId: req.user!.id, filename: parsed.data.filename, url: parsed.data.url },
+    data: {
+      ticketId,
+      uploaderId: req.user!.id,
+      filename: sanitizeOriginalFilename(req.file.originalname),
+      storedFilename: req.file.filename,
+      mimeType: req.file.mimetype,
+      sizeBytes: req.file.size,
+    },
     include: { uploader: { select: { id: true, fullName: true, role: true } } },
   })
   res.status(201).json(attachment)

@@ -14,7 +14,10 @@ export async function loadTicketForUser(ticketId: number, user: AuthenticatedUse
       publicComments: { include: { author: { select: PARTICIPANT_SELECT } }, orderBy: { createdAt: 'asc' } },
       internalNotes: { include: { author: { select: PARTICIPANT_SELECT } }, orderBy: { createdAt: 'asc' } },
       actionsTaken: { include: { author: { select: PARTICIPANT_SELECT } }, orderBy: { createdAt: 'asc' } },
-      attachments: { include: { uploader: { select: PARTICIPANT_SELECT } }, orderBy: { createdAt: 'asc' } },
+      attachments: {
+        include: { uploader: { select: PARTICIPANT_SELECT }, removedBy: { select: PARTICIPANT_SELECT } },
+        orderBy: { createdAt: 'asc' },
+      },
     },
   })
 

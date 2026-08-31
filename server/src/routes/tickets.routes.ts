@@ -2,6 +2,7 @@ import { Router } from 'express'
 import requireAuth from '../middleware/requireAuth'
 import { requireRole } from '../middleware/requireRole'
 import enforcePasswordChange from '../middleware/enforcePasswordChange'
+import uploadSingleAttachment from '../middleware/uploadAttachment'
 import * as tickets from '../controllers/tickets.controller'
 
 const router = Router()
@@ -29,6 +30,6 @@ router.post('/:id/actions', requireRole(...staffRoles), tickets.addAction)
 router.patch('/:id/actions/:actionId', requireRole(...staffRoles), tickets.updateAction)
 
 router.post('/:id/comments', tickets.addComment)
-router.post('/:id/attachments', tickets.addAttachment)
+router.post('/:id/attachments', uploadSingleAttachment, tickets.addAttachment)
 
 export default router
