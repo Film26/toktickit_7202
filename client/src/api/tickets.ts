@@ -60,9 +60,25 @@ export type TicketDetail = {
   attachments: TicketAttachment[]
 }
 
-export function fetchMyTickets(token: string, status?: TicketStatus) {
-  const qs = status ? `?status=${status}` : ''
-  return apiFetch<TicketSummary[]>(`/api/tickets/mine${qs}`, { token })
+export type SortField = 'createdAt' | 'ticketNumber' | 'summary' | 'status' | 'requestedPriority'
+export type SortOrder = 'asc' | 'desc'
+
+export type Pagination = { page: number; pageSize: number; totalCount: number; totalPages: number }
+export type MyTicketsResult = { tickets: TicketSummary[]; pagination: Pagination }
+
+export function fetchMyTickets(
+  token: string,
+  params: { status?: TicketStatus; search?: string; sort?: SortField; order?: SortOrder; page?: number; pageSize?: number } = {},
+) {
+  const query = new URLSearchParams()
+  if (params.status) query.set('status', params.status)
+  if (params.search) query.set('search', params.search)
+  if (params.sort) query.set('sort', params.sort)
+  if (params.order) query.set('order', params.order)
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+  const qs = query.toString()
+  return apiFetch<MyTicketsResult>(`/api/tickets/mine${qs ? `?${qs}` : ''}`, { token })
 }
 
 export function fetchAllTickets(

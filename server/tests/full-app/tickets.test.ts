@@ -46,7 +46,8 @@ describe('ticket lifecycle', () => {
   it('lets the requester see it in their own list', async () => {
     const response = await request(app).get('/api/tickets/mine').set('Authorization', `Bearer ${requesterToken}`)
     expect(response.status).toBe(200)
-    expect(response.body.some((t: { id: number }) => t.id === ticketId)).toBe(true)
+    expect(response.body.tickets.some((t: { id: number }) => t.id === ticketId)).toBe(true)
+    expect(response.body.pagination).toMatchObject({ page: 1, pageSize: 10 })
   })
 
   it('lets IT staff see it in the all-tickets list', async () => {
@@ -231,5 +232,94 @@ describe('ticket lifecycle', () => {
     const close = await request(app).post(`/api/tickets/${ticketId}/close`).set('Authorization', `Bearer ${adminToken}`)
     expect(close.status).toBe(200)
     expect(close.body.status).toBe('CLOSED')
+  })
+})
+
+describe('My Tickets: search, sort, and pagination', () => {
+  let token: string
+  const marker = `zzsearch-${Date.now()}`
+
+  beforeAll(async () => {
+    token = await loginAs('requester@toktickit.dev', 'Requester123!')
+    const categories = await request(app).get('/api/categories')
+    const categoryId = categories.body[0].id
+
+    for (const label of ['Alpha', 'Beta', 'Gamma']) {
+      await request(app)
+        .post('/api/tickets')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ categoryId, summary: `${marker} ${label}`, description: 'x' })
+    }
+  })
+
+  it('filters by search across the summary, scoped to only the matching tickets', async () => {
+    const response = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&pageSize=10`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(response.status).toBe(200)
+    expect(response.body.tickets).toHaveLength(3)
+    expect(response.body.pagination.totalCount).toBe(3)
+  })
+
+  it('sorts the matching tickets by summary ascending and descending', async () => {
+    const asc = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&sort=summary&order=asc&pageSize=10`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(asc.status).toBe(200)
+    expect(asc.body.tickets.map((t: { summary: string }) => t.summary)).toEqual([
+      `${marker} Alpha`,
+      `${marker} Beta`,
+      `${marker} Gamma`,
+    ])
+
+    const desc = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&sort=summary&order=desc&pageSize=10`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(desc.status).toBe(200)
+    expect(desc.body.tickets.map((t: { summary: string }) => t.summary)).toEqual([
+      `${marker} Gamma`,
+      `${marker} Beta`,
+      `${marker} Alpha`,
+    ])
+  })
+
+  it('filters by status in combination with search', async () => {
+    // all 3 marker tickets are freshly created and still NEW
+    const newOnly = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&status=NEW&pageSize=10`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(newOnly.status).toBe(200)
+    expect(newOnly.body.tickets).toHaveLength(3)
+
+    const resolvedOnly = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&status=RESOLVED&pageSize=10`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(resolvedOnly.status).toBe(200)
+    expect(resolvedOnly.body.tickets).toHaveLength(0)
+    expect(resolvedOnly.body.pagination.totalCount).toBe(0)
+  })
+
+  it('paginates with correct metadata', async () => {
+    const page1 = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&sort=summary&order=asc&page=1&pageSize=2`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(page1.status).toBe(200)
+    expect(page1.body.tickets).toHaveLength(2)
+    expect(page1.body.pagination).toMatchObject({ page: 1, pageSize: 2, totalCount: 3, totalPages: 2 })
+
+    const page2 = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&sort=summary&order=asc&page=2&pageSize=2`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(page2.status).toBe(200)
+    expect(page2.body.tickets).toHaveLength(1)
+    expect(page2.body.tickets[0].summary).toBe(`${marker} Gamma`)
+  })
+
+  it('caps pageSize and ignores an invalid sort field instead of erroring', async () => {
+    const response = await request(app)
+      .get(`/api/tickets/mine?search=${encodeURIComponent(marker)}&sort=notAColumn&pageSize=9999`)
+      .set('Authorization', `Bearer ${token}`)
+    expect(response.status).toBe(200)
+    expect(response.body.pagination.pageSize).toBe(50)
   })
 })

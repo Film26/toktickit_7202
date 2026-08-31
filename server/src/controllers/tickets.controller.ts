@@ -9,11 +9,29 @@ import { MAX_ACTIVE_ATTACHMENTS_PER_TICKET, sanitizeOriginalFilename } from '../
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const
 const STATUSES = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED'] as const
+const SORTABLE_FIELDS = ['createdAt', 'ticketNumber', 'summary', 'status', 'requestedPriority'] as const
+type SortableField = (typeof SORTABLE_FIELDS)[number]
+const DEFAULT_PAGE_SIZE = 10
+const MAX_PAGE_SIZE = 50
 
 function parseId(raw: string | string[] | undefined): number | null {
   if (typeof raw !== 'string') return null
   const id = Number(raw)
   return Number.isInteger(id) ? id : null
+}
+
+function parsePagination(query: Record<string, unknown>) {
+  const rawPage = Number(query.page)
+  const rawPageSize = Number(query.pageSize)
+  const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1
+  const pageSize = Number.isInteger(rawPageSize) && rawPageSize > 0 ? Math.min(rawPageSize, MAX_PAGE_SIZE) : DEFAULT_PAGE_SIZE
+  return { page, pageSize }
+}
+
+function parseSort(query: Record<string, unknown>): { field: SortableField; order: 'asc' | 'desc' } {
+  const { sort, order } = query
+  const field: SortableField = typeof sort === 'string' && (SORTABLE_FIELDS as readonly string[]).includes(sort) ? (sort as SortableField) : 'createdAt'
+  return { field, order: order === 'asc' ? 'asc' : 'desc' }
 }
 
 // -- create / list / detail -------------------------------------------------
@@ -58,21 +76,44 @@ export const createTicket: RequestHandler = async (req, res) => {
 }
 
 export const listMyTickets: RequestHandler = async (req, res) => {
-  const { status } = req.query
-  const where: { requesterId: number; status?: TicketStatus } = { requesterId: req.user!.id }
+  const { status, search } = req.query
+  const where: {
+    requesterId: number
+    status?: TicketStatus
+    OR?: Array<{ summary?: { contains: string; mode: 'insensitive' }; ticketNumber?: { contains: string; mode: 'insensitive' } }>
+  } = { requesterId: req.user!.id }
+
   if (typeof status === 'string' && (STATUSES as readonly string[]).includes(status)) {
     where.status = status as TicketStatus
   }
+  if (typeof search === 'string' && search.trim()) {
+    where.OR = [
+      { summary: { contains: search, mode: 'insensitive' } },
+      { ticketNumber: { contains: search, mode: 'insensitive' } },
+    ]
+  }
 
-  const tickets = await prisma.ticket.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      category: { select: { id: true, name: true } },
-      owner: { select: { id: true, fullName: true } },
-    },
+  const { field: sortField, order: sortOrder } = parseSort(req.query as Record<string, unknown>)
+  const { page, pageSize } = parsePagination(req.query as Record<string, unknown>)
+
+  const [tickets, totalCount] = await Promise.all([
+    prisma.ticket.findMany({
+      where,
+      orderBy: { [sortField]: sortOrder },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        category: { select: { id: true, name: true } },
+        owner: { select: { id: true, fullName: true } },
+      },
+    }),
+    prisma.ticket.count({ where }),
+  ])
+
+  res.status(200).json({
+    tickets,
+    pagination: { page, pageSize, totalCount, totalPages: Math.max(1, Math.ceil(totalCount / pageSize)) },
   })
-  res.status(200).json(tickets)
 }
 
 export const listTickets: RequestHandler = async (req, res) => {
