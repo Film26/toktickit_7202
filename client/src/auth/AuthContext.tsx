@@ -6,6 +6,7 @@ type AuthContextValue = {
   token: string | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
+  applySession: (token: string, user: AuthUser) => void
   logout: () => void
   setUser: (user: AuthUser) => void
 }
@@ -53,6 +54,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserState(response.user)
   }, [])
 
+  // Used by the Lab 2 Development Requester Selector: applies a session
+  // issued by the no-password dev-select endpoint, without going through
+  // the real email/password login flow.
+  const applySession = useCallback((sessionToken: string, sessionUser: AuthUser) => {
+    setToken(sessionToken)
+    localStorage.setItem(TOKEN_STORAGE_KEY, sessionToken)
+    setUserState(sessionUser)
+  }, [])
+
   const logout = useCallback(() => {
     setToken(null)
     setUserState(null)
@@ -64,6 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, setUser }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, token, isLoading, login, applySession, logout, setUser }}>
+      {children}
+    </AuthContext.Provider>
   )
 }

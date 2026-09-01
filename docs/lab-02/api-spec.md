@@ -1,6 +1,8 @@
 # API Contract — Requester-Facing Slice
 
-Documents the API surface relevant to Lab 2's Requester scope, as actually implemented in `server/src/routes/*` and `server/src/controllers/*`. All routes are mounted under `/api`. Every route below except `POST /api/auth/login`, `GET /api/health`, `GET /api/categories`, and `GET /api/related-systems` requires `Authorization: Bearer <jwt>`; the JWT is issued by `/api/auth/login`, not by a Development Requester selector (see `specification.md` Section 11).
+Documents the API surface relevant to Lab 2's Requester scope, as actually implemented in `server/src/routes/*` and `server/src/controllers/*`. All routes are mounted under `/api`. Every route below except `POST /api/auth/login`, `POST /api/requesters/dev-select`, `GET /api/health`, `GET /api/categories`, `GET /api/related-systems`, and `GET /api/requesters` requires `Authorization: Bearer <jwt>`.
+
+**Two ways to obtain a JWT:** real sign-in (`POST /api/auth/login`, email+password, used by the app's actual Login page and by IT Staff/Administrator/other flows), or the Lab 2 Development Requester Selector's `POST /api/requesters/dev-select` (below) — a password-free, testing-only endpoint that only ever sessions an already-active `REQUESTER` account. The Selector UI (`DevRequesterSelectPage`) uses only the latter; it never collects or sends a password. See `specification.md` BR-03.
 
 ## Auth
 
@@ -8,6 +10,16 @@ Documents the API surface relevant to Lab 2's Requester scope, as actually imple
 Request: `{ "email": string, "password": string }`
 Success `200`: `{ "token": string, "user": { "id", "email", "fullName", "role", "mustChangePassword" } }`
 Errors: `400` malformed body; `401` unknown email, inactive user, or wrong password.
+
+## Development Requester Selector (Lab 2 testing mechanism — not authentication)
+
+### GET /api/requesters
+Public. Returns active `REQUESTER`-role accounts only: `[{ "id": number, "fullName": string, "email": string }]`. Backs the Selector's dropdown. `200` always.
+
+### POST /api/requesters/dev-select
+Public (no auth, no password). Request: `{ "requesterId": number }`.
+Success `200`: `{ "token": string, "user": { "id", "email", "fullName", "role", "mustChangePassword" } }` — same shape as login, but no credential was ever checked; the only requirement is that `requesterId` names an active `REQUESTER` account.
+Errors: `400` missing/invalid `requesterId`; `404` no such active `REQUESTER` account (also returned unconditionally when `NODE_ENV=production`, so this testing-only path is unreachable in a real deployment).
 
 ## Reference data
 

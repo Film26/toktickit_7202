@@ -35,8 +35,8 @@ describe('DevRequesterSelectPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('loads active Development Requesters and signs in through the real login endpoint on Continue', async () => {
-    const loginCalls: Array<{ email: string; password: string }> = []
+  it('loads active Development Requesters and starts a test session via dev-select on Continue, without a password', async () => {
+    const devSelectCalls: Array<Record<string, unknown>> = []
 
     vi.stubGlobal(
       'fetch',
@@ -47,13 +47,13 @@ describe('DevRequesterSelectPage', () => {
             jsonResponse([{ id: 3, fullName: 'Rachel Requester', email: 'requester@toktickit.dev' }]),
           )
         }
-        if (path === '/api/auth/login' && options?.method === 'POST') {
+        if (path === '/api/requesters/dev-select' && options?.method === 'POST') {
           const body = JSON.parse(options.body ?? '{}')
-          loginCalls.push(body)
+          devSelectCalls.push(body)
           return Promise.resolve(
             jsonResponse({
               token: 'fake-token',
-              user: { id: 3, email: body.email, fullName: 'Rachel Requester', role: 'REQUESTER', mustChangePassword: false },
+              user: { id: 3, email: 'requester@toktickit.dev', fullName: 'Rachel Requester', role: 'REQUESTER', mustChangePassword: false },
             }),
           )
         }
@@ -76,7 +76,9 @@ describe('DevRequesterSelectPage', () => {
       expect(screen.getByText('Dashboard loaded')).toBeInTheDocument()
     })
 
-    expect(loginCalls).toEqual([{ email: 'requester@toktickit.dev', password: 'Requester123!' }])
+    // no password field exists on this screen, and none is ever sent
+    expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument()
+    expect(devSelectCalls).toEqual([{ requesterId: 3 }])
   })
 
   it('shows an empty state when no active Development Requesters exist', async () => {
