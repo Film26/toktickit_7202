@@ -3,6 +3,7 @@ import { useAuth } from './auth/useAuth'
 import ProtectedRoute from './auth/ProtectedRoute'
 import NavBar from './components/NavBar'
 import LoginPage from './pages/LoginPage'
+import DevRequesterSelectPage from './pages/DevRequesterSelectPage'
 import FirstPasswordChangePage from './pages/FirstPasswordChangePage'
 import RequesterDashboardPage from './pages/RequesterDashboardPage'
 import CreateTicketPage from './pages/CreateTicketPage'
@@ -31,6 +32,7 @@ function AppRouter() {
       <NavBar />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/dev-requester-select" element={<DevRequesterSelectPage />} />
         <Route
           path="/first-password-change"
           element={
