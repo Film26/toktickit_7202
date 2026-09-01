@@ -1,0 +1,12 @@
+{
+  "name": "toktickit-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lab 2 Playwright end-to-end suite for the Requester-facing slice of TokTickIT.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}
