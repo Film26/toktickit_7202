@@ -87,7 +87,7 @@ function DevRequesterSelectPage() {
 
           {isLoading ? (
             <LoadingSpinner />
-          ) : requesters.length === 0 ? (
+          ) : loadError ? null : requesters.length === 0 ? (
             <EmptyState message="No active Development Requesters are available." />
           ) : (
             <>
