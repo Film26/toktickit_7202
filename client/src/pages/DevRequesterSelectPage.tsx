@@ -1,27 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
-import { fetchActiveRequesters, type ActiveRequester } from '../api/requesters'
+import { fetchActiveRequesters, devSelectRequester, type ActiveRequester } from '../api/requesters'
 import { ApiError } from '../api/client'
 import ErrorAlert from '../components/ErrorAlert'
 import LoadingSpinner from '../components/LoadingSpinner'
 import EmptyState from '../components/EmptyState'
 
-// Lab 2's seeded Requester test accounts and their known (non-secret) local
-// dev passwords - see server/prisma/seed.ts and the root README. This lets
-// the selector sign a chosen Requester in through the app's real
-// authentication (POST /api/auth/login) rather than bypassing it: there is
-// no separate "fake session" mechanism, no new backend auth path, and no
-// endpoint that hands out credentials. If an account isn't in this map (e.g.
-// a Requester an Administrator created later, with an unknown generated
-// password), it simply can't be auto-signed-in here - the note below the
-// dropdown says so, and the real Login page is always the fallback.
-const DEV_REQUESTER_CREDENTIALS: Record<string, string> = {
-  'requester@toktickit.dev': 'Requester123!',
-}
-
 function DevRequesterSelectPage() {
-  const { user, login } = useAuth()
+  const { user, applySession } = useAuth()
   const navigate = useNavigate()
 
   const [requesters, setRequesters] = useState<ActiveRequester[]>([])
@@ -53,17 +40,17 @@ function DevRequesterSelectPage() {
   if (user) return <Navigate to="/dashboard" replace />
 
   const selected = requesters.find((r) => String(r.id) === selectedId)
-  const knownPassword = selected ? DEV_REQUESTER_CREDENTIALS[selected.email] : undefined
 
   const handleContinue = async () => {
-    if (!selected || !knownPassword) return
+    if (!selected) return
     setSubmitError(null)
     setIsSubmitting(true)
     try {
-      await login(selected.email, knownPassword)
+      const response = await devSelectRequester(selected.id)
+      applySession(response.token, response.user)
       navigate('/dashboard')
     } catch (err) {
-      setSubmitError(err instanceof ApiError ? err.message : 'Unable to sign in as this Development Requester.')
+      setSubmitError(err instanceof ApiError ? err.message : 'Unable to continue as this Development Requester.')
     } finally {
       setIsSubmitting(false)
     }
@@ -77,9 +64,9 @@ function DevRequesterSelectPage() {
 
         <div className="card p-4 shadow-sm">
           <p className="text-muted small">
-            Choose a Development Requester to test requester-specific ticket behavior. This is a testing
-            convenience: selecting a Requester signs you in through the same secure sign-in as the rest of the
-            app (using that seeded account's credentials), not a separate mechanism.
+            Select a Development Requester to test requester-specific ticket behavior. This is not a login
+            screen: no password is collected or checked, and only active Requester accounts are offered.
+            Authentication and role-based access will be introduced in Lab 3.
           </p>
 
           {loadError && <ErrorAlert message={loadError} />}
@@ -109,20 +96,13 @@ function DevRequesterSelectPage() {
                 </select>
               </div>
 
-              {selected && !knownPassword && (
-                <p className="text-muted small">
-                  No stored test credentials for this account. Use the <Link to="/login">Login page</Link> directly
-                  instead.
-                </p>
-              )}
-
               <button
                 type="button"
                 className="btn btn-primary w-100"
-                disabled={!selected || !knownPassword || isSubmitting}
+                disabled={!selected || isSubmitting}
                 onClick={handleContinue}
               >
-                {isSubmitting ? 'Signing in...' : 'Continue'}
+                {isSubmitting ? 'Continuing...' : 'Continue'}
               </button>
             </>
           )}

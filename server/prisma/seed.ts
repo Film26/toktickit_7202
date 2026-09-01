@@ -5,7 +5,14 @@ const prisma = new PrismaClient()
 
 const CATEGORY_NAMES = ['Account and Access', 'Hardware', 'Software', 'Network']
 
-const RELATED_SYSTEM_NAMES = ['Corporate Laptop', 'Desktop Workstation', 'VPN', 'Email / Office 365']
+const RELATED_SYSTEM_NAMES = [
+  'Corporate Laptop',
+  'Desktop Workstation',
+  'VPN',
+  'Email / Office 365',
+  'Campus Wi-Fi',
+  'Printer',
+]
 
 type SeedUser = {
   email: string
@@ -44,6 +51,22 @@ const SEED_USERS: SeedUser[] = [
     fullName: 'Nolan Newuser',
     role: Role.REQUESTER,
     mustChangePassword: true,
+  },
+  {
+    // Lab 2 requires at least four active Development Requesters in the
+    // Selector (labsheet Section 5.3).
+    email: 'jennifer.anderson@toktickit.dev',
+    password: 'Jennifer123!',
+    fullName: 'Jennifer Anderson',
+    role: Role.REQUESTER,
+    mustChangePassword: false,
+  },
+  {
+    email: 'david.lee@toktickit.dev',
+    password: 'DavidLee123!',
+    fullName: 'David Lee',
+    role: Role.REQUESTER,
+    mustChangePassword: false,
   },
   {
     // Lab 2 requires at least one inactive Development Requester in the seed
