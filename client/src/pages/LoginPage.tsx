@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../api/client'
 import ErrorAlert from '../components/ErrorAlert'
@@ -74,6 +74,11 @@ function LoginPage() {
           <button type="submit" className="btn btn-primary w-100" disabled={isSubmitting}>
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
+
+          <hr className="my-4" />
+          <p className="text-muted small mb-0 text-center">
+            Testing as a Requester? <Link to="/dev-requester-select">Use the Development Requester Selector</Link>.
+          </p>
         </form>
       </div>
     </div>
