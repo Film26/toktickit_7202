@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment secrets
+.env
+.env.local
+.env.test
+!.env.example
+!.env.test.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor/OS
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Vite / testing
+coverage/
+*.tsbuildinfo
+
+# Uploaded attachment files
+server/uploads/
