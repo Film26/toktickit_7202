@@ -8,7 +8,16 @@ import { loadTicketForUser, serializeTicket, userCanAccessTicket } from '../lib/
 import { MAX_ACTIVE_ATTACHMENTS_PER_TICKET, sanitizeOriginalFilename } from '../lib/attachmentStorage'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const
-const STATUSES = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED'] as const
+const STATUSES = [
+  'NEW',
+  'OPEN',
+  'IN_PROGRESS',
+  'WAITING_FOR_REQUESTER',
+  'RESOLVED',
+  'CLOSED',
+  'REOPENED',
+  'CANCELLED',
+] as const
 const SORTABLE_FIELDS = ['createdAt', 'ticketNumber', 'summary', 'status', 'requestedPriority'] as const
 type SortableField = (typeof SORTABLE_FIELDS)[number]
 const DEFAULT_PAGE_SIZE = 10
@@ -53,6 +62,7 @@ export const createTicket: RequestHandler = async (req, res) => {
 
   try {
     const ticket = await prisma.$transaction(async (tx) => {
+      const requestedPriority = parsed.data.requestedPriority ?? 'MEDIUM'
       const created = await tx.ticket.create({
         data: {
           ticketNumber: `PENDING-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -61,7 +71,10 @@ export const createTicket: RequestHandler = async (req, res) => {
           relatedSystemId: parsed.data.relatedSystemId,
           summary: parsed.data.summary,
           description: parsed.data.description,
-          requestedPriority: parsed.data.requestedPriority ?? 'MEDIUM',
+          requestedPriority,
+          // IT Priority starts as a copy of Requested Priority (handout section 4.5 / FR-14);
+          // IT Staff/Administrator may change it independently afterward.
+          itPriority: requestedPriority,
         },
       })
       return tx.ticket.update({
@@ -310,9 +323,17 @@ export const updateTicketItPriority: RequestHandler = async (req, res) => {
 }
 
 const statusBodySchema = z.object({ status: z.enum(STATUSES) })
+
+// Transition matrix per docs/lab-03/specification.md section 7. Resolve/Close/Cancel/
+// Confirm-Resolution/Reject-Resolution/Request-Reopen have their own dedicated endpoints
+// below (with their own preconditions, e.g. resolve requires resolutionSummary) and are
+// intentionally not reachable through this generic status endpoint.
 const ALLOWED_DIRECT_TRANSITIONS: Partial<Record<TicketStatus, TicketStatus[]>> = {
-  NEW: ['IN_PROGRESS'],
-  REOPENED: ['IN_PROGRESS'],
+  NEW: ['OPEN', 'IN_PROGRESS'],
+  OPEN: ['IN_PROGRESS'],
+  IN_PROGRESS: ['WAITING_FOR_REQUESTER'],
+  WAITING_FOR_REQUESTER: ['IN_PROGRESS'],
+  REOPENED: ['OPEN', 'IN_PROGRESS'],
 }
 
 export const updateTicketStatus: RequestHandler = async (req, res) => {
@@ -354,8 +375,8 @@ export const resolveTicket: RequestHandler = async (req, res) => {
     res.status(404).json({ error: 'Ticket not found' })
     return
   }
-  if (ticket.status !== 'IN_PROGRESS') {
-    res.status(409).json({ error: 'Only an In Progress ticket can be resolved' })
+  if (ticket.status !== 'IN_PROGRESS' && ticket.status !== 'WAITING_FOR_REQUESTER') {
+    res.status(409).json({ error: 'Only an In Progress or Waiting for Requester ticket can be resolved' })
     return
   }
 
@@ -363,6 +384,27 @@ export const resolveTicket: RequestHandler = async (req, res) => {
     where: { id },
     data: { status: 'RESOLVED', resolutionSummary: parsed.data.resolutionSummary, resolvedAt: new Date() },
   })
+  res.status(200).json(updated)
+}
+
+export const cancelTicket: RequestHandler = async (req, res) => {
+  const id = parseId(req.params.id)
+  if (id === null) {
+    res.status(400).json({ error: 'Invalid ticket id' })
+    return
+  }
+
+  const ticket = await prisma.ticket.findUnique({ where: { id } })
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+  if (ticket.status !== 'NEW' && ticket.status !== 'OPEN') {
+    res.status(409).json({ error: 'Only a New or Open ticket can be cancelled' })
+    return
+  }
+
+  const updated = await prisma.ticket.update({ where: { id }, data: { status: 'CANCELLED' } })
   res.status(200).json(updated)
 }
 
