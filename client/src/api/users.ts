@@ -20,7 +20,7 @@ export function fetchUsers(token: string, params: { q?: string; role?: Role; isA
   return apiFetch<ManagedUser[]>(`/api/users${qs ? `?${qs}` : ''}`, { token })
 }
 
-export function createUser(token: string, data: { email: string; fullName: string; role: Role }) {
+export function createUser(token: string, data: { email: string; fullName: string; role: Role; isActive?: boolean }) {
   return apiFetch<{ user: ManagedUser; temporaryPassword: string }>('/api/users', {
     method: 'POST',
     token,
