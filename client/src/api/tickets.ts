@@ -50,6 +50,7 @@ export type TicketDetail = {
   updatedAt: string
   resolvedAt: string | null
   closedAt: string | null
+  requesterAppearsResolvedAt: string | null
   requester: { id: number; fullName: string; email: string }
   owner: { id: number; fullName: string; email: string } | null
   category: { id: number; name: string }
@@ -107,6 +108,14 @@ export function createTicket(
 
 export function updateTicketPriority(token: string, id: number, requestedPriority: Priority) {
   return apiFetch<TicketDetail>(`/api/tickets/${id}/priority`, { method: 'PATCH', token, body: { requestedPriority } })
+}
+
+export function updateRequesterAppearsResolved(token: string, id: number, appearsResolved: boolean) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/requester-appears-resolved`, {
+    method: 'PATCH',
+    token,
+    body: { appearsResolved },
+  })
 }
 
 export function updateTicketOwner(token: string, id: number, ownerId: number | null) {

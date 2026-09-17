@@ -87,6 +87,7 @@ model Ticket {
   updatedAt         DateTime       @updatedAt
   resolvedAt        DateTime?
   closedAt          DateTime?
+  requesterAppearsResolvedAt DateTime?
 
   publicComments PublicComment[]
   internalNotes  InternalNote[]
