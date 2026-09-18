@@ -129,6 +129,12 @@ export function fetchTicket(token: string, id: number) {
   return apiFetch<TicketDetail>(`/api/tickets/${id}`, { token })
 }
 
+export type AssignableOwner = { id: number; fullName: string }
+
+export function fetchAssignableOwners(token: string) {
+  return apiFetch<AssignableOwner[]>('/api/tickets/assignable-owners', { token })
+}
+
 export function createTicket(
   token: string,
   data: { categoryId: number; relatedSystemId?: number; summary: string; description: string; requestedPriority?: Priority },

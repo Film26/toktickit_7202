@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import {
   fetchTicket,
+  fetchAssignableOwners,
   updateTicketPriority,
   updateRequesterAppearsResolved,
   updateTicketOwner,
@@ -24,9 +25,9 @@ import {
   MAX_ATTACHMENT_SIZE_BYTES,
   MAX_ACTIVE_ATTACHMENTS,
   type TicketDetail,
+  type AssignableOwner,
   type Priority,
 } from '../api/tickets'
-import { fetchUsers, type ManagedUser } from '../api/users'
 import { ApiError } from '../api/client'
 import LoadingSpinner from './LoadingSpinner'
 import ErrorAlert from './ErrorAlert'
@@ -75,7 +76,7 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
   const [actionError, setActionError] = useState<string | null>(null)
   const [tab, setTab] = useState<TabKey>('comments')
 
-  const [itStaffUsers, setItStaffUsers] = useState<ManagedUser[]>([])
+  const [assignableOwners, setAssignableOwners] = useState<AssignableOwner[]>([])
   const [resolutionSummary, setResolutionSummary] = useState('')
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
@@ -101,8 +102,8 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
 
   useEffect(() => {
     if (!token || !isStaff) return
-    fetchUsers(token, { role: 'IT_STAFF' })
-      .then(setItStaffUsers)
+    fetchAssignableOwners(token)
+      .then(setAssignableOwners)
       .catch(() => {
         // non-critical - the owner dropdown just stays empty
       })
@@ -211,8 +212,11 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
           <div className="d-flex flex-wrap gap-3 align-items-center">
             {isRequester && (ticket.status === 'NEW' || ticket.status === 'IN_PROGRESS') && (
               <div className="d-flex align-items-center gap-2">
-                <label className="text-muted small mb-0">Requested Priority</label>
+                <label className="text-muted small mb-0" htmlFor="requestedPriorityEdit">
+                  Requested Priority
+                </label>
                 <select
+                  id="requestedPriorityEdit"
                   className="form-select form-select-sm"
                   style={{ width: 'auto' }}
                   value={ticket.requestedPriority}
@@ -335,8 +339,11 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
 
             {isStaff && (
               <div className="d-flex align-items-center gap-2">
-                <label className="text-muted small mb-0">Owner</label>
+                <label className="text-muted small mb-0" htmlFor="ticketOwner">
+                  Owner
+                </label>
                 <select
+                  id="ticketOwner"
                   className="form-select form-select-sm"
                   style={{ width: 'auto' }}
                   value={ticket.owner?.id ?? ''}
@@ -347,9 +354,9 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                   }
                 >
                   <option value="">Unassigned</option>
-                  {itStaffUsers.map((staffUser) => (
-                    <option key={staffUser.id} value={staffUser.id}>
-                      {staffUser.fullName}
+                  {assignableOwners.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.fullName}
                     </option>
                   ))}
                 </select>
@@ -358,8 +365,11 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
 
             {isStaff && (
               <div className="d-flex align-items-center gap-2">
-                <label className="text-muted small mb-0">IT Priority</label>
+                <label className="text-muted small mb-0" htmlFor="ticketItPriority">
+                  IT Priority
+                </label>
                 <select
+                  id="ticketItPriority"
                   className="form-select form-select-sm"
                   style={{ width: 'auto' }}
                   value={ticket.itPriority ?? ''}

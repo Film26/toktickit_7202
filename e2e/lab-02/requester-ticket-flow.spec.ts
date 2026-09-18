@@ -69,7 +69,10 @@ test('Requester ticket lifecycle: dev-select -> create -> my tickets -> detail -
     await expect(page.getByText('Corporate Laptop')).toBeVisible()
     await expect(page.getByText(summary)).toBeVisible()
     await expect(page.getByText(description)).toBeVisible()
-    await expect(page.getByText('High', { exact: true })).toBeVisible()
+    // two badges now read "High": Requested Priority (submitted) and IT
+    // Priority, which defaults to a copy of Requested Priority at creation
+    // (Lab 3 FR-14) - previously IT Priority stayed unset here
+    await expect(page.getByText('High', { exact: true })).toHaveCount(2)
 
     await page.getByRole('button', { name: /Attachments/ }).click()
 

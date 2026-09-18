@@ -188,6 +188,20 @@ export const listTickets: RequestHandler = async (req, res) => {
   })
 }
 
+// IT Staff need this to populate the owner-reassignment dropdown (FR-12,
+// BR-10: owner must be an active IT_STAFF/ADMINISTRATOR), but GET /api/users
+// is Administrator-only (AC-15) - so a plain IT Staff session can never call
+// it. This staff-gated endpoint returns just enough to populate that
+// dropdown without exposing the full user-management listing.
+export const listAssignableOwners: RequestHandler = async (_req, res) => {
+  const owners = await prisma.user.findMany({
+    where: { isActive: true, role: { in: ['IT_STAFF', 'ADMINISTRATOR'] } },
+    select: { id: true, fullName: true },
+    orderBy: { fullName: 'asc' },
+  })
+  res.status(200).json(owners)
+}
+
 export const getTicket: RequestHandler = async (req, res) => {
   const id = parseId(req.params.id)
   if (id === null) {
