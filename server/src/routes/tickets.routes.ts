@@ -16,6 +16,7 @@ router.get('/', requireRole(...staffRoles), tickets.listTickets)
 router.get('/:id', tickets.getTicket)
 
 router.patch('/:id/priority', requireRole('REQUESTER'), tickets.updateTicketPriority)
+router.patch('/:id/requester-appears-resolved', requireRole('REQUESTER'), tickets.updateRequesterAppearsResolved)
 router.post('/:id/confirm-resolution', requireRole('REQUESTER'), tickets.confirmResolution)
 router.post('/:id/reject-resolution', requireRole('REQUESTER'), tickets.rejectResolution)
 router.post('/:id/request-reopen', requireRole('REQUESTER'), tickets.requestReopen)

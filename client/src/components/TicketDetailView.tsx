@@ -4,6 +4,7 @@ import { useAuth } from '../auth/useAuth'
 import {
   fetchTicket,
   updateTicketPriority,
+  updateRequesterAppearsResolved,
   updateTicketOwner,
   updateTicketItPriority,
   updateTicketStatus,
@@ -171,8 +172,16 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
             </div>
             <div className="col-md-3">
               <label className="form-label text-muted small mb-1">Current Status</label>
-              <div>
+              <div className="d-flex align-items-center gap-2">
                 <StatusBadge status={ticket.status} />
+                {ticket.requesterAppearsResolvedAt && (
+                  <span
+                    className="badge rounded-pill text-bg-success"
+                    title="Requester indicated this appears resolved"
+                  >
+                    Appears Resolved
+                  </span>
+                )}
               </div>
             </div>
 
@@ -218,6 +227,18 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                   ))}
                 </select>
               </div>
+            )}
+
+            {isRequester && ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && (
+              <button
+                type="button"
+                className={`btn btn-sm ${ticket.requesterAppearsResolvedAt ? 'btn-secondary' : 'btn-outline-success'}`}
+                onClick={() =>
+                  runAction(() => updateRequesterAppearsResolved(token, ticket.id, !ticket.requesterAppearsResolvedAt))
+                }
+              >
+                {ticket.requesterAppearsResolvedAt ? 'Undo Appears Resolved' : 'Mark as Appears Resolved'}
+              </button>
             )}
 
             {isRequester && ticket.status === 'RESOLVED' && (

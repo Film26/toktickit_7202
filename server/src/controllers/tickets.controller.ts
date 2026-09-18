@@ -213,6 +213,38 @@ export const updateTicketPriority: RequestHandler = async (req, res) => {
   res.status(200).json(updated)
 }
 
+// BR-05 / FR-20: an informal signal from the Requester that the problem
+// appears resolved. Distinct from confirmResolution/rejectResolution below,
+// which only apply once IT Staff has already formally moved the ticket to
+// RESOLVED -- this endpoint is usable any time before that, and never
+// changes `status` itself.
+const appearsResolvedBodySchema = z.object({ appearsResolved: z.boolean() })
+
+export const updateRequesterAppearsResolved: RequestHandler = async (req, res) => {
+  const id = parseId(req.params.id)
+  const parsed = appearsResolvedBodySchema.safeParse(req.body)
+  if (id === null || !parsed.success) {
+    res.status(400).json({ error: 'appearsResolved (boolean) is required' })
+    return
+  }
+
+  const ticket = await prisma.ticket.findUnique({ where: { id } })
+  if (!ticket || ticket.requesterId !== req.user!.id) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+  if (ticket.status === 'RESOLVED' || ticket.status === 'CLOSED') {
+    res.status(409).json({ error: 'A Resolved or Closed ticket already has a formal resolution' })
+    return
+  }
+
+  const updated = await prisma.ticket.update({
+    where: { id },
+    data: { requesterAppearsResolvedAt: parsed.data.appearsResolved ? new Date() : null },
+  })
+  res.status(200).json(updated)
+}
+
 export const confirmResolution: RequestHandler = async (req, res) => {
   const id = parseId(req.params.id)
   if (id === null) {
