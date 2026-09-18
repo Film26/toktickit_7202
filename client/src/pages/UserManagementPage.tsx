@@ -24,17 +24,21 @@ function roleLabel(role: Role) {
     .join(' ')
 }
 
+const ROLE_FILTER_OPTIONS: Array<Role | ''> = ['', 'REQUESTER', 'IT_STAFF', 'ADMINISTRATOR']
+
 function UserManagementPage() {
-  const { token } = useAuth()
+  const { token, user: currentUser } = useAuth()
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<Role | ''>('')
 
   const [newEmail, setNewEmail] = useState('')
   const [newFullName, setNewFullName] = useState('')
   const [newRole, setNewRole] = useState<Role>('REQUESTER')
+  const [newIsActive, setNewIsActive] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [lastTemporaryPassword, setLastTemporaryPassword] = useState<{ email: string; password: string } | null>(
     null,
@@ -44,11 +48,11 @@ function UserManagementPage() {
     if (!token) return
     setIsLoading(true)
     setError(null)
-    fetchUsers(token, { q: query || undefined })
+    fetchUsers(token, { q: query || undefined, role: roleFilter || undefined })
       .then(setUsers)
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Unable to load users.'))
       .finally(() => setIsLoading(false))
-  }, [token, query])
+  }, [token, query, roleFilter])
 
   useEffect(() => {
     load()
@@ -60,11 +64,17 @@ function UserManagementPage() {
     setActionError(null)
     setIsCreating(true)
     try {
-      const result = await createUser(token, { email: newEmail.trim(), fullName: newFullName.trim(), role: newRole })
+      const result = await createUser(token, {
+        email: newEmail.trim(),
+        fullName: newFullName.trim(),
+        role: newRole,
+        isActive: newIsActive,
+      })
       setLastTemporaryPassword({ email: result.user.email, password: result.temporaryPassword })
       setNewEmail('')
       setNewFullName('')
       setNewRole('REQUESTER')
+      setNewIsActive(true)
       load()
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'Unable to create user.')
@@ -124,7 +134,7 @@ function UserManagementPage() {
         <div className="card-body">
           <h2 className="h6 mb-3">Create User</h2>
           <form onSubmit={handleCreate} className="row g-2 align-items-end">
-            <div className="col-md-4">
+            <div className="col-md-3">
               <label htmlFor="newFullName" className="form-label small text-muted mb-1">
                 Full name
               </label>
@@ -137,7 +147,7 @@ function UserManagementPage() {
                 required
               />
             </div>
-            <div className="col-md-4">
+            <div className="col-md-3">
               <label htmlFor="newEmail" className="form-label small text-muted mb-1">
                 Email
               </label>
@@ -163,6 +173,20 @@ function UserManagementPage() {
               </select>
             </div>
             <div className="col-md-2">
+              <div className="form-check">
+                <input
+                  id="newIsActive"
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={newIsActive}
+                  onChange={(event) => setNewIsActive(event.target.checked)}
+                />
+                <label htmlFor="newIsActive" className="form-check-label small text-muted">
+                  Active
+                </label>
+              </div>
+            </div>
+            <div className="col-md-2">
               <button type="submit" className="btn btn-primary w-100" disabled={isCreating}>
                 {isCreating ? 'Creating...' : 'Create'}
               </button>
@@ -171,14 +195,28 @@ function UserManagementPage() {
         </div>
       </div>
 
-      <div className="mb-3" style={{ maxWidth: 320 }}>
+      <div className="mb-3 d-flex flex-wrap gap-2">
         <input
           type="search"
           className="form-control"
+          style={{ maxWidth: 320 }}
           placeholder="Search by name or email"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
+        <select
+          className="form-select"
+          style={{ maxWidth: 200 }}
+          aria-label="Filter by role"
+          value={roleFilter}
+          onChange={(event) => setRoleFilter(event.target.value as Role | '')}
+        >
+          {ROLE_FILTER_OPTIONS.map((role) => (
+            <option key={role || 'all'} value={role}>
+              {role ? roleLabel(role) : 'All roles'}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && <ErrorAlert message={error} />}
@@ -241,6 +279,12 @@ function UserManagementPage() {
                           <button
                             type="button"
                             className={`btn ${user.isActive ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                            disabled={user.isActive && user.id === currentUser?.id}
+                            title={
+                              user.isActive && user.id === currentUser?.id
+                                ? "You can't deactivate your own account."
+                                : undefined
+                            }
                             onClick={() => handleToggleStatus(user)}
                           >
                             {user.isActive ? 'Deactivate' : 'Activate'}
