@@ -25,6 +25,7 @@ router.patch('/:id/it-priority', requireRole(...staffRoles), tickets.updateTicke
 router.patch('/:id/status', requireRole(...staffRoles), tickets.updateTicketStatus)
 router.post('/:id/resolve', requireRole(...staffRoles), tickets.resolveTicket)
 router.post('/:id/close', requireRole(...staffRoles), tickets.closeTicket)
+router.post('/:id/cancel', requireRole(...staffRoles), tickets.cancelTicket)
 router.post('/:id/notes', requireRole(...staffRoles), tickets.addNote)
 router.post('/:id/actions', requireRole(...staffRoles), tickets.addAction)
 router.patch('/:id/actions/:actionId', requireRole(...staffRoles), tickets.updateAction)

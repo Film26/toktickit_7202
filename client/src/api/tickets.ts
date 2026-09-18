@@ -2,7 +2,15 @@ import { apiFetch, apiFetchBlob } from './client'
 import type { Role } from './auth'
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
-export type TicketStatus = 'NEW' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'REOPENED'
+export type TicketStatus =
+  | 'NEW'
+  | 'OPEN'
+  | 'IN_PROGRESS'
+  | 'WAITING_FOR_REQUESTER'
+  | 'RESOLVED'
+  | 'CLOSED'
+  | 'REOPENED'
+  | 'CANCELLED'
 
 export type TicketSummary = {
   id: number
@@ -145,6 +153,10 @@ export function updateTicketStatus(token: string, id: number, status: TicketStat
 
 export function resolveTicket(token: string, id: number, resolutionSummary: string) {
   return apiFetch<TicketDetail>(`/api/tickets/${id}/resolve`, { method: 'POST', token, body: { resolutionSummary } })
+}
+
+export function cancelTicket(token: string, id: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/cancel`, { method: 'POST', token })
 }
 
 export function closeTicket(token: string, id: number) {
