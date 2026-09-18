@@ -20,6 +20,7 @@ export type TicketSummary = {
   requestedPriority: Priority
   itPriority: Priority | null
   createdAt: string
+  updatedAt: string
   category: { id: number; name: string }
   owner: { id: number; fullName: string } | null
   requester?: { id: number; fullName: string }
@@ -69,11 +70,19 @@ export type TicketDetail = {
   attachments: TicketAttachment[]
 }
 
-export type SortField = 'createdAt' | 'ticketNumber' | 'summary' | 'status' | 'requestedPriority'
+export type SortField =
+  | 'createdAt'
+  | 'ticketNumber'
+  | 'summary'
+  | 'status'
+  | 'requestedPriority'
+  | 'itPriority'
+  | 'updatedAt'
 export type SortOrder = 'asc' | 'desc'
 
 export type Pagination = { page: number; pageSize: number; totalCount: number; totalPages: number }
 export type MyTicketsResult = { tickets: TicketSummary[]; pagination: Pagination }
+export type TicketQueueResult = { tickets: TicketSummary[]; pagination: Pagination }
 
 export function fetchMyTickets(
   token: string,
@@ -92,15 +101,28 @@ export function fetchMyTickets(
 
 export function fetchAllTickets(
   token: string,
-  params: { status?: TicketStatus; ownerId?: string; categoryId?: number; q?: string } = {},
+  params: {
+    status?: TicketStatus
+    ownerId?: string
+    categoryId?: number
+    q?: string
+    sort?: SortField
+    order?: SortOrder
+    page?: number
+    pageSize?: number
+  } = {},
 ) {
   const query = new URLSearchParams()
   if (params.status) query.set('status', params.status)
   if (params.ownerId) query.set('ownerId', params.ownerId)
   if (params.categoryId) query.set('categoryId', String(params.categoryId))
   if (params.q) query.set('q', params.q)
+  if (params.sort) query.set('sort', params.sort)
+  if (params.order) query.set('order', params.order)
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
   const qs = query.toString()
-  return apiFetch<TicketSummary[]>(`/api/tickets${qs ? `?${qs}` : ''}`, { token })
+  return apiFetch<TicketQueueResult>(`/api/tickets${qs ? `?${qs}` : ''}`, { token })
 }
 
 export function fetchTicket(token: string, id: number) {
