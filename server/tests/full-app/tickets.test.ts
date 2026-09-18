@@ -53,7 +53,8 @@ describe('ticket lifecycle', () => {
   it('lets IT staff see it in the all-tickets list', async () => {
     const response = await request(app).get('/api/tickets').set('Authorization', `Bearer ${itStaffToken}`)
     expect(response.status).toBe(200)
-    expect(response.body.some((t: { id: number }) => t.id === ticketId)).toBe(true)
+    expect(response.body.tickets.some((t: { id: number }) => t.id === ticketId)).toBe(true)
+    expect(response.body.pagination).toMatchObject({ page: 1, pageSize: 10 })
   })
 
   it('404s for another requester trying to view someone else’s ticket, and omits internalNotes for the owning requester', async () => {

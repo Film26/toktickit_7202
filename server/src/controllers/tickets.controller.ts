@@ -9,7 +9,15 @@ import { MAX_ACTIVE_ATTACHMENTS_PER_TICKET, sanitizeOriginalFilename } from '../
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const
 const STATUSES = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED'] as const
-const SORTABLE_FIELDS = ['createdAt', 'ticketNumber', 'summary', 'status', 'requestedPriority'] as const
+const SORTABLE_FIELDS = [
+  'createdAt',
+  'ticketNumber',
+  'summary',
+  'status',
+  'requestedPriority',
+  'itPriority',
+  'updatedAt',
+] as const
 type SortableField = (typeof SORTABLE_FIELDS)[number]
 const DEFAULT_PAGE_SIZE = 10
 const MAX_PAGE_SIZE = 50
@@ -143,16 +151,28 @@ export const listTickets: RequestHandler = async (req, res) => {
     ]
   }
 
-  const tickets = await prisma.ticket.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      category: { select: { id: true, name: true } },
-      owner: { select: { id: true, fullName: true } },
-      requester: { select: { id: true, fullName: true } },
-    },
+  const { field: sortField, order: sortOrder } = parseSort(req.query as Record<string, unknown>)
+  const { page, pageSize } = parsePagination(req.query as Record<string, unknown>)
+
+  const [tickets, totalCount] = await Promise.all([
+    prisma.ticket.findMany({
+      where,
+      orderBy: { [sortField]: sortOrder },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        category: { select: { id: true, name: true } },
+        owner: { select: { id: true, fullName: true } },
+        requester: { select: { id: true, fullName: true } },
+      },
+    }),
+    prisma.ticket.count({ where }),
+  ])
+
+  res.status(200).json({
+    tickets,
+    pagination: { page, pageSize, totalCount, totalPages: Math.max(1, Math.ceil(totalCount / pageSize)) },
   })
-  res.status(200).json(tickets)
 }
 
 export const getTicket: RequestHandler = async (req, res) => {
