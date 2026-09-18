@@ -1,12 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Lab 2 end-to-end suite. Runs against the REAL dev-mode app (API + client
-// dev servers), backed by the existing dev Postgres DB at server/.env's
+// Lab 2 + Lab 3 end-to-end suite. Runs against the REAL dev-mode app (API +
+// client dev servers), backed by the existing dev Postgres DB at server/.env's
 // DATABASE_URL - the same DB the seed script targets. Both servers are
 // started automatically before the tests run (see `webServer` below) and
 // torn down afterward.
 export default defineConfig({
-  testDir: './lab-02',
+  testDir: '.',
+  testMatch: ['lab-02/**/*.spec.ts', 'lab-03/**/*.spec.ts'],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,

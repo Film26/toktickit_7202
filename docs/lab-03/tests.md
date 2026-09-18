@@ -33,8 +33,8 @@ authorization / migration-regression / E2E spread:
   The full pre-existing Lab 1/Lab 2 suite (`server/tests/full-app/`, `server/tests/lab-02/`,
   `client/tests/full-app/`, `client/tests/lab-02/`) also still passes on every Lab 3 branch — see
   §4 — which is the regression evidence that Lab 2 Requester behavior wasn't broken.
-- **E2E**: not yet implemented. Planned files and scope are in §5; this is Issue #49's work,
-  sequenced after the other Lab 3 branches merge so there's real merged UI to drive.
+- **E2E**: implemented (Issue #49, Part A) — see §5 for the three files, scope, and the real bug
+  they found. Sequenced after the other Lab 3 branches merged so there was real merged UI to drive.
 
 ## 2. Test Table (Lab 3 — new tests only; see §4 for regression totals)
 
@@ -151,21 +151,49 @@ test file(s) plus the shared Lab 1/2/full-app baseline. Once branches merge into
 the combined suite will be re-run from that branch directly and this table updated with the merged
 totals (tracked under Issue #51, release integration).
 
-## 5. Planned E2E Coverage (not yet implemented — Issue #49)
+## 5. E2E Coverage (Issue #49, Part A — implemented)
 
-Per the required structure (handout §12):
+All three planned files exist, run against the real dev-mode app (API + client dev servers, real
+Postgres dev DB), and pass. Sequenced after #42/#43/#45/#47 merged into `lab3-staging` (via PR #57's
+merge), so they drive real merged UI rather than a throwaway local combine of unmerged branches.
 
-| Planned file | Scope |
-|---|---|
-| `e2e/lab-03/authentication.spec.ts` | Valid/invalid login, inactive-account handling, mandatory first-password change gating normal app access, logout, direct-URL access blocked after logout (AC-01, AC-02, AC-05) |
-| `e2e/lab-03/staff-ticket-flow.spec.ts` | IT Staff searches/filters/sorts the queue, opens a ticket, claims/reassigns ownership, sets IT Priority, moves through a permitted status transition, posts a Public Comment, writes an Internal Note and confirms a Requester session can't see it (AC-04, AC-09, AC-14) |
-| `e2e/lab-03/user-administration.spec.ts` | Administrator creates a user, searches/filters, edits, sets a new initial password and confirms it's required at next login, attempts (and is blocked from) self-deactivation and removing the last Administrator, confirms non-Administrator gets forbidden (AC-12, AC-13, AC-15, AC-17) |
+| Test ID | File | Scope | Final |
+|---|---|---|---|
+| E2E-01 | `authentication.spec.ts` | Valid login reaches the dashboard | Pass |
+| E2E-02 | `authentication.spec.ts` | Wrong password → generic error (AC-05 sibling case) | Pass |
+| E2E-03 | `authentication.spec.ts` | Inactive account, correct password → **identical** generic error (BR-06/AC-05) | Pass |
+| E2E-04 | `authentication.spec.ts` | Forced password change gates `/dashboard` until saved (AC-02) | Pass |
+| E2E-05 | `authentication.spec.ts` | Logout clears session; direct URL access blocked afterward (AC-01 sibling case) | Pass |
+| E2E-06 | `staff-ticket-flow.spec.ts` | Queue search/sort, claim/reassign ownership, IT Priority, status transitions (New→In Progress→Waiting→In Progress), Public Comment, Internal Note, and confirms a Requester session sees the comment but never the note (AC-04, AC-09, AC-14) | Pass |
+| E2E-07 | `user-administration.spec.ts` | Admin creates a user, searches/role-filters, edits role, resets password, confirms the reset user is forced to change it at next login, self-deactivation blocked (UI + direct API, BR-16/17), non-Administrator forbidden from `/admin/users` (AC-12, AC-13, AC-15, AC-17) | Pass |
 
-Deliberately sequenced after #42/#43/#45 merge into `lab3-staging`, so these drive real merged UI
-rather than a throwaway local combine of unmerged branches.
+**Bug found and fixed via E2E (not caught by any unit/API/UI test above):** `staff-ticket-flow`'s
+claim/reassign step failed the first time it was run as a real IT Staff (not Administrator)
+session — `TicketDetailView.tsx`'s owner dropdown called `GET /api/users`, which is
+Administrator-only (SEC-06/AC-15), so it silently stayed empty for any non-Administrator IT Staff.
+Every prior automated test that touched ownership assignment (API-*, UI-*) had used either an
+Administrator token or asserted the API directly, so none exercised this specific client code path
+as a plain IT Staff. Fixed with a new staff-gated `GET /api/tickets/assignable-owners` endpoint
+(not by loosening `/api/users/*`, which would have broken SEC-06/AC-15) plus new tests:
 
-## 6. Style/Responsive Checklist
+| Test ID | Type | What It Tests | Automated Test File | Final |
+|---|---|---|---|---|
+| API-30 | API | An IT Staff (not just Administrator) session can list assignable owners | `assignable-owners.api.test.ts` | Pass |
+| API-31 | API | Only active IT_STAFF/ADMINISTRATOR returned — never Requesters or inactive staff | `assignable-owners.api.test.ts` | Pass |
+| API-32 | API | Requester rejected 403 | `assignable-owners.api.test.ts` | Pass |
+| API-33 | API | Unauthenticated request rejected 401 | `assignable-owners.api.test.ts` | Pass |
 
-Tracked in `docs/lab-03/ui-spec.md` §6 (visual checklist) — to be run and checked off during
-Issue #49 alongside the E2E work, once there's a stable merged UI to screenshot at all three
-breakpoints.
+This is exactly the class of bug E2E testing exists to catch: every lower-level test that exercised
+this feature happened to use a role that made the gap invisible.
+
+## 6. Style/Responsive Checklist (Issue #49, Part B — implemented)
+
+Full results in `docs/lab-03/ui-spec.md` §6. Summary: 5 of 7 checklist items PASS outright, 1
+(focus states) is explicitly left unverified (screenshots can't show `:focus`, needs a manual
+keyboard pass), and 1 (no clipping/overflow at 375px) is a PARTIAL — no page-level overflow or
+overlap anywhere, but two data tables (IT Staff Queue, User Management) have more columns than fit
+at 375px/800px and rely on `.table-responsive`'s own horizontal scroll (same pattern as Lab 2's My
+Tickets table, not a new regression). One real gap found and fixed during this pass: Internal Notes
+had no visual distinction from Public Comments at all (contradicting both this doc and handout
+§8.4) until this pass added the amber panel. Screenshots (desktop/tablet/mobile, all four required
+folders) are committed under `artifacts/lab-03/screenshots/`.
