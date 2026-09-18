@@ -9,6 +9,7 @@ import {
   updateTicketStatus,
   resolveTicket,
   closeTicket,
+  cancelTicket,
   confirmResolution,
   rejectResolution,
   requestReopen,
@@ -249,12 +250,65 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
             )}
 
             {isStaff && (ticket.status === 'NEW' || ticket.status === 'REOPENED') && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'IN_PROGRESS'))}
+                >
+                  Start Progress
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'OPEN'))}
+                >
+                  Acknowledge
+                </button>
+              </>
+            )}
+
+            {isStaff && ticket.status === 'OPEN' && (
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'IN_PROGRESS'))}
               >
                 Start Progress
+              </button>
+            )}
+
+            {isStaff && (ticket.status === 'NEW' || ticket.status === 'OPEN') && (
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm"
+                onClick={() => {
+                  if (window.confirm('Cancel this ticket? This cannot be undone.')) {
+                    runAction(() => cancelTicket(token, ticket.id))
+                  }
+                }}
+              >
+                Cancel Ticket
+              </button>
+            )}
+
+            {isStaff && ticket.status === 'IN_PROGRESS' && (
+              <button
+                type="button"
+                className="btn btn-outline-warning btn-sm"
+                onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'WAITING_FOR_REQUESTER'))}
+              >
+                Mark Waiting
+              </button>
+            )}
+
+            {isStaff && ticket.status === 'WAITING_FOR_REQUESTER' && (
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'IN_PROGRESS'))}
+              >
+                Resume Progress
               </button>
             )}
 
@@ -315,7 +369,7 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
             )}
           </div>
 
-          {isStaff && ticket.status === 'IN_PROGRESS' && (
+          {isStaff && (ticket.status === 'IN_PROGRESS' || ticket.status === 'WAITING_FOR_REQUESTER') && (
             <form
               className="d-flex gap-2 mt-3"
               onSubmit={(event) => {
