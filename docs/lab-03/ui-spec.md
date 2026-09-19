@@ -12,8 +12,13 @@ does not repeat the Lab 2 token table.
   apart), `WAITING_FOR_REQUESTER` = warning (amber, matches `REOPENED`'s "needs attention" tone but
   a different label so the two are never confused), `CANCELLED` = dark/secondary with a strikethrough
   text style on the ticket row (signals "terminal, nothing to do" distinctly from `CLOSED`).
-- **New `RoleBadge`**: `REQUESTER` = light, `IT_STAFF` = info, `ADMINISTRATOR` = dark. Used in
-  `NavBar` (current user) and the Administrator User Management table.
+- **`RoleBadge` — planned, not built (found during Issue #49 visual inspection).** This doc
+  originally described a dedicated `RoleBadge` component (`REQUESTER` = light, `IT_STAFF` = info,
+  `ADMINISTRATOR` = dark) for `NavBar` and the Administrator User Management table. No such
+  component exists in `client/src/components/`. In practice: `NavBar` shows the role as plain text
+  (`{fullName} ({role})`), and the User Management table shows role as an editable `<select>`, not
+  a badge. Functionally fine (the role is always legible as text either way), but flagged here
+  rather than left silently mismatched with the code.
 - **New "Appears Resolved" indicator**: a small `text-bg-success` pill with a check icon,
   `title="Requester indicated this appears resolved"`, shown next to the status badge in the queue
   row and the ticket-detail header whenever `requesterAppearsResolvedAt` is non-null. Not a status —
@@ -64,10 +69,15 @@ example field list — Last Updated is intentionally omitted from the default co
 below).
 
 **New (Issue #44):**
-- Column headers for `Created Date`, `Req. Priority`, `IT Priority`, `Status` become sort toggles
-  (click = ascending, click again = descending; a small caret icon shows current sort direction).
-  Default sort: `Created Date` descending (newest first), matching the current unsorted behavior.
-- Pagination bar below the table (Previous / page numbers / Next), same component style as the
+- Sort is a `<select aria-label="Sort tickets">` dropdown above the table (Newest/Oldest first,
+  Ticket No., Requested/IT Priority, Status, Recently updated) — **not** the clickable
+  column-header-with-caret-icon design originally planned here (found during Issue #49 visual
+  inspection; this doc's earlier draft described sort toggles built into the column headers
+  themselves). The simpler dropdown covers the same sort fields and is consistent with the
+  existing status/owner filter controls on the same screen; flagged as a design simplification,
+  not a functional gap. Default sort: `Created Date` descending (newest first), matching the
+  current unsorted behavior.
+- Pagination bar below the table (Previous / page count / Next), same component style as the
   Requester's My Tickets list (which already has pagination from Lab 2).
 - Empty/no-results distinction (per handout §8.6): "No tickets match your filters." when filters
   are active and the query returns zero rows, vs. "No tickets in the queue." when there are no
@@ -86,8 +96,13 @@ convenience, matching (not substituting for) the server's `409` enforcement.
 **Public Comments vs. Internal Notes — visual distinction (handout §8.4):** Public Comments keep
 the existing white-card / plain-text style. Internal Notes render inside a `bg-warning-subtle`
 panel with a left amber border and a "Internal — not visible to the Requester" caption pinned above
-the note form, so an IT Staff member cannot mistake which box they're typing into. The Internal
-Notes tab itself is only rendered when `isStaff` (existing) — a Requester never even sees an empty
+the note form, so an IT Staff member cannot mistake which box they're typing into. **This
+distinction did not exist until Issue #49's visual inspection caught it**: Internal Notes were
+rendering with the exact same plain white-card style as Public Comments (only the tab label and
+placeholder text differed) — a real gap against this doc and handout §8.4, fixed as part of #49
+rather than left for a later issue, since it was a small, targeted change
+(`client/src/components/TicketDetailView.tsx`, the `tab === 'notes'` branch). The Internal Notes
+tab itself is only rendered when `isStaff` (existing) — a Requester never even sees an empty
 tab for it, since the server already strips `internalNotes` from their payload entirely (FR-08).
 
 ### 2.7 Administrator User Management (`UserManagementPage.tsx`)
@@ -99,21 +114,32 @@ Existing: table (Name, Email, `RoleBadge`, Status badge, Edit button), search bo
   `role` query param.
 - Create User panel gains an "Active" toggle (defaults on) alongside Name/Email/Role, sent as
   `isActive` on `POST /api/users`.
-- Edit User panel: the "Deactivate" control is **disabled** (not merely warned-against) when the row
-  being edited is the signed-in Administrator's own account, with a tooltip
-  "You can't deactivate your own account." If an edit is attempted anyway via a stale UI state
-  (e.g., two admin tabs open) and the server returns `403`/`409`, the panel shows that message
-  inline via `ErrorAlert` rather than silently failing.
-- "Reset Password" action shows the returned one-time temporary password in a dismissible
-  `alert-success` panel (not a modal that could be lost on accidental dismiss) with a copy-to-
-  clipboard button, and a note "The user must set a new password at their next login."
+- **Correction (Issue #49 visual inspection): there is no separate "Edit User panel."** This doc's
+  earlier draft described role/active editing happening in a dedicated Edit panel with its own
+  Deactivate control. The actual, shipped design is simpler: every editable field lives inline in
+  the table row itself — a `<select>` for Role (changes immediately on select), a "Reset Password"
+  button, and a "Deactivate"/"Activate" toggle button. That toggle **is** disabled (not merely
+  warned-against) on the signed-in Administrator's own row, with a tooltip "You can't deactivate
+  your own account," and a `403`/`409` from the server (e.g. two admin tabs open) shows inline via
+  `ErrorAlert`. Name and email are **not** editable through the UI at all — `PATCH /api/users/:id`
+  supports it server-side (FR-25), but no control calls it with those fields. Worth a follow-up
+  issue if the handout requires editing them; out of scope to add here.
+- "Reset Password" (and "Create") show the returned one-time temporary password in a dismissible
+  `alert-success` panel (not a modal that could be lost on accidental dismiss) with a note that it
+  won't be shown again. **There is no copy-to-clipboard button** (this doc's earlier draft
+  described one) — the password is plain selectable text in a `<code>` element only.
 
 ## 3. Component states (additions to Lab 2's list)
 
-- **Forbidden:** a shared `ForbiddenAlert` (new) renders the server's `403` message inline where an
-  action button lives (e.g., the disabled self-deactivate control, a blocked status transition) —
-  distinct from `ErrorAlert`'s generic red styling by using `alert-warning` instead of
-  `alert-danger`, so "you're not allowed" reads differently from "something broke."
+- **Forbidden — `ForbiddenAlert` was planned but not built (found during Issue #49 visual
+  inspection).** This doc originally described a dedicated `ForbiddenAlert` component using
+  `alert-warning` (amber) styling, distinct from `ErrorAlert`'s red, for `403` responses. No such
+  component exists — every error, including `403`s, renders through the same `ErrorAlert`
+  (`alert-danger`, red). Not a functional problem (the message text is always the server's
+  specific, safe error text either way — see "Conflict" below), just a visual-distinction gap
+  against this doc's original intent. The one place a "forbidden" state is genuinely
+  distinguishable is the disabled self-deactivate button (a `disabled` control with a tooltip, not
+  an alert at all).
 - **Conflict (409):** rendered through the existing `ErrorAlert`, but the message is always the
   server's specific safe-error text (e.g., "Cannot deactivate the last active Administrator"), never
   a generic "Something went wrong."
@@ -124,16 +150,20 @@ Existing: table (Name, Email, `RoleBadge`, Status badge, Edit button), search bo
 
 ## 4. Responsive behavior
 
-Same Bootstrap-grid approach as Lab 2 (no custom breakpoints). New surfaces to verify at desktop
-(1280px), tablet (800px), and mobile (375px), per handout §7/§8.7:
-- IT Staff Queue table with the new sort headers and pagination bar — confirm the pagination bar
-  wraps to a second line rather than overflowing horizontally at 375px.
-- Administrator User Management's Create/Edit side panel — confirm it stacks below the table (not
-  beside it) below the `md` breakpoint, matching the existing Ticket Detail's stacking behavior.
-- Internal Notes' amber panel — confirm the left border and caption remain visible (not clipped) at
-  375px.
+Same Bootstrap-grid approach as Lab 2 (no custom breakpoints). New surfaces verified at desktop
+(1280px), tablet (800px), and mobile (375px), per handout §7/§8.7 (Issue #49 visual pass):
+- IT Staff Queue table and pagination bar — **the pagination bar itself never overflows or wraps**
+  at 375px (Previous / "Page 1 of 4" / Next stay on one line). The *table*, however, has more
+  columns than fit at 375px or even 800px — see §6's "clipping/overflow" finding for the full
+  detail; it scrolls horizontally within its own `.table-responsive` container rather than
+  overflowing the page.
+- Administrator User Management's Create User panel — confirmed it stacks above the table at every
+  width tested, including 375px (`user-management/user-list-mobile.png`); there is no separate Edit
+  panel to check (see §2.7 correction).
+- Internal Notes' amber panel (added during this pass, §2.6) — confirmed the left border and
+  caption remain visible, not clipped, at 375px.
 
-Screenshots for all three breakpoints, all Lab 3 screens, go under
+Screenshots for all three breakpoints, all Lab 3 screens, are committed under
 `artifacts/lab-03/screenshots/{authentication,staff-queue,staff-ticket-detail,user-management}/`
 (Issue #49).
 
@@ -148,14 +178,47 @@ Screenshots for all three breakpoints, all Lab 3 screens, go under
   with no `disabled` attribute), so it's correctly announced as unavailable rather than merely
   styled differently.
 
-## 6. Visual checklist (to be run and checked off during Issue #49)
+## 6. Visual checklist (run during Issue #49, against screenshots in
+`artifacts/lab-03/screenshots/{authentication,staff-queue,staff-ticket-detail,user-management}/`)
 
-- [ ] Design consistency: every new control uses existing Zen Green tokens/components, no ad-hoc
-      colors introduced.
-- [ ] Role navigation: no nav link to a destination the current role can't use appears anywhere.
-- [ ] Badges: status/priority/role badges never rely on color alone (text label always present).
-- [ ] Editable vs. read-only fields keep the existing Lab 2 visual convention (`bg-light` for
-      read-only).
-- [ ] Validation placement consistent with Lab 2 (inline, under the field, not only in a toast).
-- [ ] Focus states visible on every new interactive element (sort headers, toggle, filter select).
-- [ ] No clipping/overlap/horizontal overflow at 375px on any Lab 3 screen.
+- [x] **Design consistency** — PASS. Every screen uses the existing Zen Green tokens (green
+      navbar/primary buttons, existing badge/alert styles); no ad-hoc colors found. The one
+      addition, the Internal Notes amber panel (see §2.6), reuses Bootstrap's existing
+      `bg-warning-subtle`/`border-warning` utilities, not a new color.
+- [x] **Role navigation** — PASS. Requester sees only "Create Ticket" + "Change Requester"; Admin
+      sees only "Users" + "Reference Data"; IT Staff sees neither. No link to an inaccessible
+      destination was found on any screenshot.
+- [x] **Badges never rely on color alone** — PASS. Every `StatusBadge`/`PriorityBadge` always shows
+      a text label (e.g. "High", "In Progress") alongside its color. Role is not shown as a badge
+      at all currently (see §1 correction) — text-only, so this is trivially satisfied for role too.
+- [x] **Editable vs. read-only fields** — PASS. Read-only `Field`s (Ticket No., Category, Ticket
+      Date, etc.) consistently use `bg-light`; every editable control (selects, inputs) uses the
+      plain white Bootstrap control style. Verified on both Requester and IT Staff ticket detail.
+- [x] **Validation placement** — PASS. The login error and the create-user validation both render
+      inline, above/near the relevant form, never only in a toast (`artifacts/.../login-error-*`).
+- [ ] **Focus states** — NOT VERIFIED. Static screenshots can't show `:focus` styling; this needs
+      an actual keyboard walk-through (Tab through each form) rather than a screenshot diff. Left
+      unchecked rather than falsely marked pass — a follow-up manual pass is still needed here.
+- [~] **No clipping/overlap/horizontal overflow at 375px** — PARTIAL. No page-level horizontal
+      scroll or overlapping elements were found on any screen. However, the IT Staff Queue table
+      (`staff-queue/queue-mobile.png`) and the User Management table (`user-management/user-list-
+      mobile.png`) both have more columns than fit in 375px (and even 800px tablet width) — several
+      columns (Status, IT Priority, Password, action buttons) are pushed outside the initially
+      visible area. This is Bootstrap's `.table-responsive` wrapper doing its job (the table
+      scrolls horizontally *within its own container*, not the whole page), and it's the same
+      pattern Lab 2's My Tickets table already uses — not a Lab 3 regression. But it means a
+      reviewer scanning only a screenshot (not actually scrolling) will not see most of the table's
+      columns at mobile width; worth a follow-up (e.g. a visible "scroll for more →" hint) rather
+      than a hard requirement for this lab.
+
+### Findings fixed during this pass
+- IT Staff Ticket Detail's Owner-reassignment dropdown was silently empty for any plain IT Staff
+  session (`GET /api/users` is Administrator-only) — fixed in Issue #49's E2E PR with a new
+  `GET /api/tickets/assignable-owners` endpoint.
+- Internal Notes had no visual distinction from Public Comments (see §2.6) — fixed in this pass.
+
+### Findings documented, not fixed (flagged for the reviewer)
+- `RoleBadge`, `ForbiddenAlert`, column-header sort toggles, the Reset-Password copy-to-clipboard
+  button, and the separate Edit User panel were all planned in this doc but never built. None are
+  functional blockers — see the corrected descriptions in §1/§2.5/§2.7/§3 above for what actually
+  ships instead.

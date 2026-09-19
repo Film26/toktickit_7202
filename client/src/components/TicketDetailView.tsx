@@ -470,14 +470,17 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
           )}
 
           {tab === 'notes' && isStaff && ticket.internalNotes && (
-            <>
+            <div className="bg-warning-subtle border-start border-warning border-4 rounded p-3">
+              <p className="fw-semibold text-warning-emphasis mb-3">
+                Internal — not visible to the Requester
+              </p>
               <CommentForm
                 placeholder="Add an internal note (not visible to the requester)..."
                 buttonLabel="Add Note"
                 onSubmit={(body) => runAction(() => addNote(token, ticket.id, body))}
               />
               <CommentList comments={ticket.internalNotes} emptyMessage="No internal notes yet." />
-            </>
+            </div>
           )}
 
           {tab === 'actions' && (
