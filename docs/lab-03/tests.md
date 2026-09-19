@@ -1,12 +1,22 @@
 # Lab 3 Test Plan and Results — Auth, IT Staff, Admin
 
-Written against tests that actually exist on each Lab 3 feature branch (PRs #53–#58) and that were
-actually run in this session, not reconstructed afterward from whatever the coding agent happened
-to produce. As of this document's commit, none of those PRs are merged into `lab3-staging` yet
-(each was reviewed and run independently on its own branch, per `docs/lab-03/reviewer.md`) — Test
-IDs and file paths below are accurate to each branch as implemented; "Final" reflects the result
-observed on that branch's own CI run, not a run from `main`. This will be re-verified from a clean
-checkout of `main` before Lab 3 is submitted (Definition of Done, `specification.md` §12).
+Written against tests that actually exist and were actually run, not reconstructed afterward from
+whatever the coding agent happened to produce. Update history:
+
+- Initial version written while PRs #53–58 were still open on their own branches (each reviewed
+  and run independently, per `docs/lab-03/reviewer.md`); "Final" reflected each branch's own run.
+- All Lab 3 PRs (#52–61) are now merged into `lab3-staging`, and all Lab 3 issues except #51
+  (this release-integration issue itself, closed last) are closed.
+- **Full clean-checkout verification (Issue #51's Definition of Done)**: with explicit user
+  consent, reset the local test database (`prisma migrate reset`) and re-ran everything from
+  scratch against `lab3-staging`'s merged tip: **176/176 server tests, 45/45 client tests, and
+  17/17 E2E tests (both `lab-02` and `lab-03`) — 238/238 total, all passing.** This is the run
+  referenced by "Final" throughout this document from this point on. (One test,
+  `seed-idempotency.test.ts`'s idempotency check, was found to intermittently exceed Vitest's
+  default timeout under full-suite load, even on a freshly reset database — a resource-contention
+  flake, not a logic bug. A fix exists on branch `fix/issue-51-seed-test-timeout` but was not
+  merged, per the repo owner's direction to stop opening additional review-gated PRs at this
+  stage; re-running the affected test alone always passes.)
 
 ## 1. Test Strategy
 
@@ -145,11 +155,11 @@ opened, confirming no Lab 2 Requester behavior broke:
 | #44 (PR #57) | 13 / 99 | 10 / 40 |
 | #48 (PR #58) | 13 / 95 (run twice consecutively for stability) | — (no client changes) |
 
-Per-branch totals differ because each branch is deliberately isolated from the others (none built
-on top of another's commits — see `docs/lab-03/reviewer.md`), so each only carries its own new
-test file(s) plus the shared Lab 1/2/full-app baseline. Once branches merge into `lab3-staging`,
-the combined suite will be re-run from that branch directly and this table updated with the merged
-totals (tracked under Issue #51, release integration).
+Per-branch totals differ because each branch was deliberately isolated from the others (none built
+on top of another's commits — see `docs/lab-03/reviewer.md`), so each only carried its own new
+test file(s) plus the shared Lab 1/2/full-app baseline. All branches are now merged into
+`lab3-staging`; the merged, combined total is **176 server tests / 45 client tests** (see §1's
+update history above for the full clean-checkout verification, including E2E).
 
 ## 5. E2E Coverage (Issue #49, Part A — implemented)
 
