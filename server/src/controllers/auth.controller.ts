@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import prisma from '../db'
 import { signToken } from '../lib/jwt'
+import { isPasswordValid, PASSWORD_REQUIREMENTS_MESSAGE } from '../lib/passwordPolicy'
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -45,13 +46,14 @@ export const login: RequestHandler = async (req, res) => {
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
+  newPassword: z.string().refine(isPasswordValid, { message: PASSWORD_REQUIREMENTS_MESSAGE }),
 })
 
 export const changePassword: RequestHandler = async (req, res) => {
   const parsed = changePasswordSchema.safeParse(req.body)
   if (!parsed.success) {
-    res.status(400).json({ error: 'currentPassword and newPassword (min 8 characters) are required' })
+    const message = parsed.error.issues[0]?.message ?? PASSWORD_REQUIREMENTS_MESSAGE
+    res.status(400).json({ error: message })
     return
   }
 

@@ -33,7 +33,7 @@ test('IT Staff queue + ticket detail: search/sort, claim, IT Priority, status, c
   await test.step('IT Staff logs in and lands on the queue', async () => {
     await page.goto('/login')
     await page.getByLabel('Email').fill('itstaff@toktickit.dev')
-    await page.getByLabel('Password').fill('ItStaff123!')
+    await page.getByLabel('Password', { exact: true }).fill('ItStaff123!')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/\/dashboard$/)
     await expect(page.getByRole('heading', { name: 'All Tickets' })).toBeVisible()
@@ -105,7 +105,7 @@ test('IT Staff queue + ticket detail: search/sort, claim, IT Priority, status, c
     await expect(page).toHaveURL(/\/login$/)
 
     await page.getByLabel('Email').fill('requester@toktickit.dev')
-    await page.getByLabel('Password').fill('Requester123!')
+    await page.getByLabel('Password', { exact: true }).fill('Requester123!')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/\/dashboard$/)
 

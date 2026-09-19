@@ -124,4 +124,27 @@ describe('POST /api/auth/change-password', () => {
 
     expect(response.status).toBe(401)
   })
+
+  // Reinstated per reviewer decision (reverses the "length-only" call in
+  // docs/lab-03/specification.md section 11.5): a new password must be 8+
+  // characters with upper/lower case, a number, and a special character.
+  it.each([
+    ['too short', 'Ab1!'],
+    ['no uppercase', 'lowercase123!'],
+    ['no lowercase', 'UPPERCASE123!'],
+    ['no number', 'NoNumberHere!'],
+    ['no special character', 'NoSpecialChar123'],
+  ])('rejects a new password that is %s', async (_label, newPassword) => {
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'requester@toktickit.dev', password: 'Requester123!' })
+
+    const response = await request(app)
+      .post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${login.body.token}`)
+      .send({ currentPassword: 'Requester123!', newPassword })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toMatch(/upper and lower case|8 characters|number.*special/i)
+  })
 })

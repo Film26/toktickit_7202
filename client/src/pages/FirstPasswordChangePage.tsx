@@ -3,7 +3,24 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { changePassword } from '../api/auth'
 import { ApiError } from '../api/client'
+import { hasMinLength, hasNumberAndSpecialChar, hasUpperAndLowerCase, isPasswordValid } from '../lib/passwordPolicy'
 import ErrorAlert from '../components/ErrorAlert'
+import PasswordInput from '../components/PasswordInput'
+import { CheckIcon } from '../components/icons'
+
+function RequirementItem({ met, children }: { met: boolean; children: React.ReactNode }) {
+  return (
+    <li className={`d-flex align-items-center gap-2 ${met ? 'text-success' : 'text-muted'}`}>
+      <span
+        className={`d-inline-flex align-items-center justify-content-center rounded-circle ${met ? 'bg-success text-white' : 'border'}`}
+        style={{ width: 18, height: 18, flexShrink: 0 }}
+      >
+        {met && <CheckIcon />}
+      </span>
+      {children}
+    </li>
+  )
+}
 
 function FirstPasswordChangePage() {
   const { token, user, setUser } = useAuth()
@@ -14,15 +31,21 @@ function FirstPasswordChangePage() {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const meetsLength = hasMinLength(newPassword)
+  const meetsCase = hasUpperAndLowerCase(newPassword)
+  const meetsNumberAndSpecial = hasNumberAndSpecialChar(newPassword)
+  const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword
+  const canSubmit = isPasswordValid(newPassword) && passwordsMatch
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError(null)
 
-    if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters.')
+    if (!isPasswordValid(newPassword)) {
+      setError('New password does not meet the requirements below.')
       return
     }
-    if (newPassword !== confirmPassword) {
+    if (!passwordsMatch) {
       setError('New password and confirmation do not match.')
       return
     }
@@ -49,51 +72,43 @@ function FirstPasswordChangePage() {
         <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
           {error && <ErrorAlert message={error} />}
 
-          <div className="mb-3">
-            <label htmlFor="currentPassword" className="form-label">
-              Current (temporary) password
-            </label>
-            <input
-              id="currentPassword"
-              type="password"
-              className="form-control"
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-              required
-            />
+          <PasswordInput
+            id="currentPassword"
+            label="Current (temporary) password"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+            autoComplete="current-password"
+            required
+          />
+
+          <PasswordInput
+            id="newPassword"
+            label="New password"
+            value={newPassword}
+            onChange={setNewPassword}
+            autoComplete="new-password"
+            required
+          />
+
+          <PasswordInput
+            id="confirmPassword"
+            label="Confirm new password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            autoComplete="new-password"
+            required
+          />
+
+          <div className="alert alert-light border mb-3">
+            <p className="fw-semibold mb-2">Password must:</p>
+            <ul className="list-unstyled mb-0 d-flex flex-column gap-1">
+              <RequirementItem met={meetsLength}>Be at least 8 characters</RequirementItem>
+              <RequirementItem met={meetsCase}>Include upper and lower case letters</RequirementItem>
+              <RequirementItem met={meetsNumberAndSpecial}>Include a number and a special character</RequirementItem>
+            </ul>
           </div>
 
-          <div className="mb-3">
-            <label htmlFor="newPassword" className="form-label">
-              New password
-            </label>
-            <input
-              id="newPassword"
-              type="password"
-              className="form-control"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              minLength={8}
-              required
-            />
-          </div>
-
-          <div className="mb-3">
-            <label htmlFor="confirmPassword" className="form-label">
-              Confirm new password
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              className="form-control"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              minLength={8}
-              required
-            />
-          </div>
-
-          <button type="submit" className="btn btn-primary w-100" disabled={isSubmitting}>
+          <button type="submit" className="btn btn-primary w-100" disabled={isSubmitting || !canSubmit}>
             {isSubmitting ? 'Saving...' : 'Change Password'}
           </button>
         </form>

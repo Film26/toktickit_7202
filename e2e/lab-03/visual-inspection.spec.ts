@@ -48,7 +48,7 @@ test.describe('Authentication screens', () => {
   test('Login - validation/error state', async ({ page }) => {
     await page.goto('/login')
     await page.getByLabel('Email').fill('itstaff@toktickit.dev')
-    await page.getByLabel('Password').fill('WrongPassword123!')
+    await page.getByLabel('Password', { exact: true }).fill('WrongPassword123!')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByText('Invalid credentials')).toBeVisible()
     await shootAllViewports(page, 'authentication', 'login-error')
@@ -65,7 +65,7 @@ test.describe('Authentication screens', () => {
 
     await page.goto('/login')
     await page.getByLabel('Email').fill(email)
-    await page.getByLabel('Password').fill(temporaryPassword)
+    await page.getByLabel('Password', { exact: true }).fill(temporaryPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/\/first-password-change$/)
     await shootAllViewports(page, 'authentication', 'change-password')

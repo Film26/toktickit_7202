@@ -26,18 +26,25 @@ does not repeat the Lab 2 token table.
 
 ## 2. Screens
 
-### 2.1 Login (`LoginPage.tsx`) — unchanged from Lab 2
+### 2.1 Login (`LoginPage.tsx`)
 
-Already matches the handout mockup: email, password, inline validation, busy "Signing in..."
-state, generic invalid-credentials alert (BR-06). No Lab 3 changes needed here.
+Email + password, inline validation, busy "Signing in..." state, generic invalid-credentials alert
+(BR-06) with an icon (`ErrorAlert`, shared with other screens). **Updated post-release to match the
+handout mockup exactly** (previously deferred, see `specification.md` §11.5): the password field
+has a show/hide eye-icon toggle (`PasswordInput`, shared with Change Password), and a "Forgot your
+password?" link toggles a small inline message — "Please contact your Administrator to reset your
+password" — rather than an actual email-based reset flow, which stays excluded per §3.2.
 
 ### 2.2 Change Password (`FirstPasswordChangePage.tsx`)
 
-Current (temporary) password, new password, confirm new password. Live validation: new/confirm
-match, new ≥ 8 characters. Submit is disabled until both checks pass; busy label "Saving...". On
-success, redirects into `/dashboard`. Per `specification.md` §11.5, the mockup's
-upper/lower/number/special-character checklist is **not** implemented — only length is enforced and
-shown — flagged for the reviewer rather than silently matched to the mockup.
+Current (temporary) password, new password, confirm new password, each with the same show/hide
+toggle as Login. **Password rule reversal (see `specification.md` §11.5):** the mockup's
+upper/lower/number/special-character checklist is now enforced, not just ≥8 characters — a live
+checklist (`Password must:` with three rows: length, case, number+special) shows a green check per
+requirement as the user types, backed by `client/src/lib/passwordPolicy.ts` (mirroring
+`server/src/lib/passwordPolicy.ts`, the actual enforcement boundary). Submit is disabled until every
+requirement passes and new/confirm match; busy label "Saving...". On success, redirects into
+`/dashboard`.
 
 ### 2.3 App shell / `NavBar`
 

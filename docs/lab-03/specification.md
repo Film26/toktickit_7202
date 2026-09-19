@@ -226,10 +226,13 @@ error shape as the existing `updateTicketStatus` handler. Cancel is only reachab
 Full screen-by-screen detail (modes, controls, feedback states, responsive behavior) is in
 `docs/lab-03/ui-spec.md`. Summary:
 
-- **Login** — email/password, inline validation, busy Sign In state, generic invalid-credentials
-  banner (BR-06), redirects to `/first-password-change` when `mustChangePassword`, else `/dashboard`.
-- **Change Password** — current + new + confirm, live rule checklist (≥8 chars — see §11 on
-  whether to add upper/lower/number/special per the mockup), blocks navigation away until saved.
+- **Login** — email/password (with a show/hide toggle), inline validation, busy Sign In state,
+  generic invalid-credentials banner (BR-06) with an icon, a "Forgot your password?" link (shows a
+  "contact your Administrator" message — no email-based reset per §3.2's exclusion), redirects to
+  `/first-password-change` when `mustChangePassword`, else `/dashboard`.
+- **Change Password** — current + new + confirm (each with a show/hide toggle), live rule
+  checklist (≥8 chars, upper **and** lower case, a number and a special character — see §11.5),
+  blocks navigation away until saved.
 - **App shell** — `NavBar` shows the authenticated user's name/role and role-appropriate links
   only; `Logout` clears the token and redirects to `/login`.
 - **Requester Dashboard / Create Ticket / Ticket Detail** — unchanged from Lab 2 except Ticket
@@ -343,10 +346,13 @@ and E2E rows specifically).
    handout's "clear response... without exposing unnecessary account information" — we read
    "clear" as clear *to a legitimate user who knows their own account state*, not as a distinct
    wire-level signal an attacker could use to enumerate accounts.
-5. **Password rules kept at the existing ≥8-character minimum** rather than adding the mockup's
-   upper/lower/number/special-character checklist, since the handout's password-rule mockup is
-   illustrative ("Password must: ...") and not listed as a mandatory BR; flagged here rather than
-   silently expanded, open to revisiting if the reviewer disagrees.
+5. **Reversed: password rules now match the mockup's checklist.** Originally kept at the existing
+   ≥8-character minimum (this decision was flagged here as open to revisiting if the reviewer
+   disagreed) — the reviewer did, post-release, so `POST /api/auth/change-password` now also
+   requires upper **and** lower case letters, a number, and a special character
+   (`server/src/lib/passwordPolicy.ts`), with a live checklist on `FirstPasswordChangePage.tsx`
+   matching the mockup exactly (show/hide toggle, per-requirement checkmarks). System-generated
+   temporary passwords (`generateTempPassword.ts`) were updated to always satisfy the same policy.
 6. **Cancel is one-way in Lab 3** (no "reopen a cancelled ticket") to keep the transition matrix
    small; nothing in the handout requires reopening a cancelled ticket, and Lab 4's Actions Taken
    gate only concerns Resolved/Closed.

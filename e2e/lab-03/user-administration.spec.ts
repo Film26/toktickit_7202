@@ -22,7 +22,7 @@ test('Administrator: create, search/filter, edit role, reset password, and the s
   await test.step('Administrator logs in and opens User Management', async () => {
     await page.goto('/login')
     await page.getByLabel('Email').fill('admin@toktickit.dev')
-    await page.getByLabel('Password').fill('Admin123!')
+    await page.getByLabel('Password', { exact: true }).fill('Admin123!')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/\/dashboard$/)
 
@@ -84,7 +84,7 @@ test('Administrator: create, search/filter, edit role, reset password, and the s
     const freshPage = await freshContext.newPage()
     await freshPage.goto('/login')
     await freshPage.getByLabel('Email').fill(newUserEmail)
-    await freshPage.getByLabel('Password').fill(resetTemporaryPassword)
+    await freshPage.getByLabel('Password', { exact: true }).fill(resetTemporaryPassword)
     await freshPage.getByRole('button', { name: 'Sign in' }).click()
     await expect(freshPage).toHaveURL(/\/first-password-change$/)
     await freshContext.close()
@@ -123,7 +123,7 @@ test('Administrator: create, search/filter, edit role, reset password, and the s
     await expect(page).toHaveURL(/\/login$/)
 
     await page.getByLabel('Email').fill('itstaff@toktickit.dev')
-    await page.getByLabel('Password').fill('ItStaff123!')
+    await page.getByLabel('Password', { exact: true }).fill('ItStaff123!')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/\/dashboard$/)
 

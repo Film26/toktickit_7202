@@ -11,7 +11,7 @@ const marker = `E2E ${Date.now()}`
 test('Login: valid credentials reach the dashboard', async ({ page }) => {
   await page.goto('/login')
   await page.getByLabel('Email').fill('itstaff@toktickit.dev')
-  await page.getByLabel('Password').fill('ItStaff123!')
+  await page.getByLabel('Password', { exact: true }).fill('ItStaff123!')
   await page.getByRole('button', { name: 'Sign in' }).click()
 
   await expect(page).toHaveURL(/\/dashboard$/)
@@ -21,7 +21,7 @@ test('Login: valid credentials reach the dashboard', async ({ page }) => {
 test('Login: wrong password is rejected with a generic error', async ({ page }) => {
   await page.goto('/login')
   await page.getByLabel('Email').fill('itstaff@toktickit.dev')
-  await page.getByLabel('Password').fill('WrongPassword123!')
+  await page.getByLabel('Password', { exact: true }).fill('WrongPassword123!')
   await page.getByRole('button', { name: 'Sign in' }).click()
 
   await expect(page.getByText('Invalid credentials')).toBeVisible()
@@ -34,7 +34,7 @@ test('Login: an inactive account gets the identical generic error (BR-06)', asyn
   // account existence/status is never leaked.
   await page.goto('/login')
   await page.getByLabel('Email').fill('inactive-itstaff@toktickit.dev')
-  await page.getByLabel('Password').fill('InactiveItStaff123!')
+  await page.getByLabel('Password', { exact: true }).fill('InactiveItStaff123!')
   await page.getByRole('button', { name: 'Sign in' }).click()
 
   await expect(page.getByText('Invalid credentials')).toBeVisible()
@@ -59,7 +59,7 @@ test('Mandatory first-password change gates the app until a new password is save
   await test.step('Logging in with the temporary password lands on the forced change screen, not the dashboard', async () => {
     await page.goto('/login')
     await page.getByLabel('Email').fill(email)
-    await page.getByLabel('Password').fill(temporaryPassword)
+    await page.getByLabel('Password', { exact: true }).fill(temporaryPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
 
     await expect(page).toHaveURL(/\/first-password-change$/)
@@ -71,9 +71,9 @@ test('Mandatory first-password change gates the app until a new password is save
   })
 
   await test.step('Saving a new password unlocks normal navigation', async () => {
-    await page.getByLabel('Current (temporary) password').fill(temporaryPassword)
+    await page.getByLabel('Current (temporary) password', { exact: true }).fill(temporaryPassword)
     await page.getByLabel('New password', { exact: true }).fill('BrandNewPass123!')
-    await page.getByLabel('Confirm new password').fill('BrandNewPass123!')
+    await page.getByLabel('Confirm new password', { exact: true }).fill('BrandNewPass123!')
     await page.getByRole('button', { name: 'Change Password' }).click()
 
     await expect(page).toHaveURL(/\/dashboard$/)
@@ -83,7 +83,7 @@ test('Mandatory first-password change gates the app until a new password is save
 test('Logout clears the session and blocks direct URL access afterward', async ({ page }) => {
   await page.goto('/login')
   await page.getByLabel('Email').fill('itstaff@toktickit.dev')
-  await page.getByLabel('Password').fill('ItStaff123!')
+  await page.getByLabel('Password', { exact: true }).fill('ItStaff123!')
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
 

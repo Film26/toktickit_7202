@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../api/client'
 import ErrorAlert from '../components/ErrorAlert'
+import PasswordInput from '../components/PasswordInput'
 
 function LoginPage() {
   const { user, login } = useAuth()
@@ -12,6 +13,7 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showForgotPasswordHelp, setShowForgotPasswordHelp] = useState(false)
 
   if (user) {
     const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/dashboard'
@@ -56,24 +58,33 @@ function LoginPage() {
             />
           </div>
 
-          <div className="mb-3">
-            <label htmlFor="password" className="form-label">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              className="form-control"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            label="Password"
+            value={password}
+            onChange={setPassword}
+            required
+            autoComplete="current-password"
+          />
 
           <button type="submit" className="btn btn-primary w-100" disabled={isSubmitting}>
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
+
+          <p className="text-center mt-3 mb-0">
+            <button
+              type="button"
+              className="btn btn-link p-0 small"
+              onClick={() => setShowForgotPasswordHelp((v) => !v)}
+            >
+              Forgot your password?
+            </button>
+          </p>
+          {showForgotPasswordHelp && (
+            <p className="text-muted small text-center mt-2 mb-0">
+              Please contact your Administrator to reset your password.
+            </p>
+          )}
 
           <hr className="my-4" />
           <p className="text-muted small mb-0 text-center">
