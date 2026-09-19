@@ -31,6 +31,11 @@ async function countSeedOwnedRows() {
 }
 
 describe('seed idempotency and migration regression (Issue #48)', () => {
+  // Running the full seed twice (10 bcrypt hashes at cost 10 plus category/
+  // related-system/ticket/comment upserts, twice) is inherently slower than
+  // a typical test and flakes against the 5s default when the rest of the
+  // suite is competing for the same DB connections/CPU - found while
+  // verifying the full suite from a clean checkout (Issue #51).
   it('running the seed twice in a row produces identical row counts (no duplication, no error)', async () => {
     await runSeed()
     const afterFirstRun = await countSeedOwnedRows()
@@ -39,7 +44,7 @@ describe('seed idempotency and migration regression (Issue #48)', () => {
     const afterSecondRun = await countSeedOwnedRows()
 
     expect(afterSecondRun).toEqual(afterFirstRun)
-  })
+  }, 20_000)
 
   it('seeds at least 3 active + 1 inactive IT Staff, and at least 4 active + 1 inactive Requester (labsheet section 5.3)', async () => {
     const [activeStaff, inactiveStaff, activeRequesters, inactiveRequesters] = await Promise.all([
