@@ -13,6 +13,7 @@ router.use(requireAuth, enforcePasswordChange)
 router.post('/', requireRole('REQUESTER'), tickets.createTicket)
 router.get('/mine', requireRole('REQUESTER'), tickets.listMyTickets)
 router.get('/', requireRole(...staffRoles), tickets.listTickets)
+router.get('/assignable-owners', requireRole(...staffRoles), tickets.listAssignableOwners)
 router.get('/:id', tickets.getTicket)
 
 router.patch('/:id/priority', requireRole('REQUESTER'), tickets.updateTicketPriority)
