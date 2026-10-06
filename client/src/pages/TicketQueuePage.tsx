@@ -1,19 +1,25 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
-import { fetchAllTickets, type SortField, type SortOrder, type TicketStatus, type TicketSummary } from '../api/tickets'
+import { fetchAllTickets, type Priority, type SortField, type SortOrder, type TicketStatus, type TicketSummary } from '../api/tickets'
 import { fetchCategories, type Category } from '../api/categories'
 import { ApiError } from '../api/client'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorAlert from '../components/ErrorAlert'
 import TicketTable from '../components/TicketTable'
+import DrillDownChip from '../components/DrillDownChip'
+import { isTicketStatus } from '../lib/ticketWorkflow'
 
 const STATUS_FILTERS: Array<{ label: string; value: TicketStatus | 'ALL' }> = [
   { label: 'All', value: 'ALL' },
   { label: 'New', value: 'NEW' },
+  { label: 'Open', value: 'OPEN' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
+  { label: 'Waiting for Requester', value: 'WAITING_FOR_REQUESTER' },
   { label: 'Resolved', value: 'RESOLVED' },
   { label: 'Closed', value: 'CLOSED' },
   { label: 'Reopened', value: 'REOPENED' },
+  { label: 'Cancelled', value: 'CANCELLED' },
 ]
 
 const OWNER_FILTERS: Array<{ label: string; value: string }> = [
@@ -32,16 +38,38 @@ const SORT_OPTIONS: Array<{ label: string; sort: SortField; order: SortOrder }> 
   { label: 'Recently updated', sort: 'updatedAt', order: 'desc' },
 ]
 
+const IT_PRIORITY_VALUES = ['URGENT', 'HIGH', 'MEDIUM', 'LOW', 'unset'] as const
+const IT_PRIORITY_LABELS: Record<(typeof IT_PRIORITY_VALUES)[number], string> = {
+  URGENT: 'Urgent',
+  HIGH: 'High',
+  MEDIUM: 'Medium',
+  LOW: 'Low',
+  unset: 'Not set',
+}
+
 const PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 300
 
-function ItStaffDashboardPage() {
+// IT Staff Ticket Queue (Lab 3), at /queue since Lab 4. Reads the dashboard
+// drill-down filters (status, statusGroup, ownerId, itPriority) from the
+// URL so a dashboard card opens exactly the tickets it counted (FR-14).
+function TicketQueuePage() {
   const { token } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [tickets, setTickets] = useState<TicketSummary[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [categories, setCategories] = useState<Category[]>([])
-  const [status, setStatus] = useState<TicketStatus | 'ALL'>('ALL')
-  const [ownerFilter, setOwnerFilter] = useState('')
+  const initialStatus = searchParams.get('status')
+  const initialOwner = searchParams.get('ownerId')
+  const initialPriority = searchParams.get('itPriority')
+  const [status, setStatus] = useState<TicketStatus | 'ALL'>(isTicketStatus(initialStatus) ? initialStatus : 'ALL')
+  const [statusGroup, setStatusGroup] = useState<'open' | undefined>(
+    searchParams.get('statusGroup') === 'open' && !isTicketStatus(initialStatus) ? 'open' : undefined,
+  )
+  const [itPriority, setItPriority] = useState<Priority | 'unset' | undefined>(
+    (IT_PRIORITY_VALUES as readonly string[]).includes(initialPriority ?? '') ? (initialPriority as Priority | 'unset') : undefined,
+  )
+  const [ownerFilter, setOwnerFilter] = useState(initialOwner === 'me' || initialOwner === 'unassigned' ? initialOwner : '')
   const [categoryId, setCategoryId] = useState('')
   const [queryInput, setQueryInput] = useState('')
   const [query, setQuery] = useState('')
@@ -61,7 +89,7 @@ function ItStaffDashboardPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [status, ownerFilter, categoryId, query, sortIndex])
+  }, [status, statusGroup, itPriority, ownerFilter, categoryId, query, sortIndex])
 
   useEffect(() => {
     if (!token) return
@@ -72,6 +100,8 @@ function ItStaffDashboardPage() {
     setError(null)
     fetchAllTickets(token, {
       status: status === 'ALL' ? undefined : status,
+      statusGroup,
+      itPriority,
       ownerId: ownerFilter || undefined,
       categoryId: categoryId ? Number(categoryId) : undefined,
       q: query || undefined,
@@ -95,13 +125,19 @@ function ItStaffDashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [token, status, ownerFilter, categoryId, query, sortIndex, page])
+  }, [token, status, statusGroup, itPriority, ownerFilter, categoryId, query, sortIndex, page])
 
-  const hasActiveFilter = status !== 'ALL' || ownerFilter !== '' || categoryId !== '' || query !== ''
+  const hasActiveFilter =
+    status !== 'ALL' || !!statusGroup || !!itPriority || ownerFilter !== '' || categoryId !== '' || query !== ''
+
+  const drillDownParts = [
+    statusGroup ? 'open tickets' : null,
+    itPriority ? `IT Priority: ${IT_PRIORITY_LABELS[itPriority]}` : null,
+  ].filter(Boolean)
 
   return (
     <div className="container py-4">
-      <h1 className="h3 mb-4">All Tickets</h1>
+      <h1 className="h3 mb-4">Ticket Queue</h1>
 
       <div className="d-flex flex-wrap gap-3 align-items-end mb-3">
         <div className="btn-group flex-wrap" role="group" aria-label="Filter by status">
@@ -110,7 +146,11 @@ function ItStaffDashboardPage() {
               key={filter.value}
               type="button"
               className={`btn btn-sm ${status === filter.value ? 'btn-primary' : 'btn-outline-primary'}`}
-              onClick={() => setStatus(filter.value)}
+              aria-pressed={status === filter.value && !statusGroup}
+              onClick={() => {
+                setStatus(filter.value)
+                setStatusGroup(undefined)
+              }}
             >
               {filter.label}
             </button>
@@ -123,6 +163,7 @@ function ItStaffDashboardPage() {
               key={filter.value}
               type="button"
               className={`btn btn-sm ${ownerFilter === filter.value ? 'btn-primary' : 'btn-outline-primary'}`}
+              aria-pressed={ownerFilter === filter.value}
               onClick={() => setOwnerFilter(filter.value)}
             >
               {filter.label}
@@ -170,6 +211,17 @@ function ItStaffDashboardPage() {
         </select>
       </div>
 
+      {drillDownParts.length > 0 && (
+        <DrillDownChip
+          description={drillDownParts.join(', ')}
+          onClear={() => {
+            setStatusGroup(undefined)
+            setItPriority(undefined)
+            setSearchParams({}, { replace: true })
+          }}
+        />
+      )}
+
       {error && <ErrorAlert message={error} />}
 
       <div className="card shadow-sm">
@@ -187,7 +239,7 @@ function ItStaffDashboardPage() {
       </div>
 
       {!isLoading && totalPages > 1 && (
-        <nav className="d-flex justify-content-between align-items-center mt-3" aria-label="All Tickets pagination">
+        <nav className="d-flex justify-content-between align-items-center mt-3" aria-label="Ticket Queue pagination">
           <button
             type="button"
             className="btn btn-outline-secondary btn-sm"
@@ -213,4 +265,4 @@ function ItStaffDashboardPage() {
   )
 }
 
-export default ItStaffDashboardPage
+export default TicketQueuePage

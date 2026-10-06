@@ -2,9 +2,10 @@ import type { RequestHandler } from 'express'
 import fs from 'node:fs'
 import { z } from 'zod'
 import type { Response } from 'express'
-import type { TicketStatus } from '@prisma/client'
+import type { Prisma, TicketStatus } from '@prisma/client'
 import prisma from '../db'
 import { formatTicketNumber } from '../lib/ticketNumber'
+import { itPriorityFilter, statusFilter } from '../lib/ticketFilters'
 import { loadTicketForUser, serializeTicket, userCanAccessTicket } from '../lib/ticketAccess'
 import { MAX_ACTIVE_ATTACHMENTS_PER_TICKET, sanitizeOriginalFilename } from '../lib/attachmentStorage'
 import {
@@ -110,16 +111,9 @@ export const createTicket: RequestHandler = async (req, res) => {
 }
 
 export const listMyTickets: RequestHandler = async (req, res) => {
-  const { status, search } = req.query
-  const where: {
-    requesterId: number
-    status?: TicketStatus
-    OR?: Array<{ summary?: { contains: string; mode: 'insensitive' }; ticketNumber?: { contains: string; mode: 'insensitive' } }>
-  } = { requesterId: req.user!.id }
+  const { status, statusGroup, search } = req.query
+  const where: Prisma.TicketWhereInput = { requesterId: req.user!.id, ...statusFilter(status, statusGroup, STATUSES) }
 
-  if (typeof status === 'string' && (STATUSES as readonly string[]).includes(status)) {
-    where.status = status as TicketStatus
-  }
   if (typeof search === 'string' && search.trim()) {
     where.OR = [
       { summary: { contains: search, mode: 'insensitive' } },
@@ -151,17 +145,11 @@ export const listMyTickets: RequestHandler = async (req, res) => {
 }
 
 export const listTickets: RequestHandler = async (req, res) => {
-  const { status, ownerId, categoryId, q } = req.query
-  const where: {
-    status?: TicketStatus
-    categoryId?: number
-    ownerId?: number | null
-    OR?: Array<{ summary?: { contains: string; mode: 'insensitive' }; ticketNumber?: { contains: string; mode: 'insensitive' } }>
-  } = {}
+  const { status, statusGroup, itPriority, ownerId, categoryId, q } = req.query
+  // Drill-down filters (statusGroup, itPriority) match the dashboard metric
+  // definitions exactly -- docs/lab-04/specification.md section 8.
+  const where: Prisma.TicketWhereInput = { ...statusFilter(status, statusGroup, STATUSES), ...itPriorityFilter(itPriority) }
 
-  if (typeof status === 'string' && (STATUSES as readonly string[]).includes(status)) {
-    where.status = status as TicketStatus
-  }
   if (typeof categoryId === 'string' && Number.isInteger(Number(categoryId))) {
     where.categoryId = Number(categoryId)
   }

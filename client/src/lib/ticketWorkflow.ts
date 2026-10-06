@@ -55,6 +55,10 @@ export function resolutionGate(actions: TicketAction[]) {
   return { allowed: reasons.length === 0, open, completed, reasons }
 }
 
+export function isTicketStatus(value: string | null): value is TicketStatus {
+  return value !== null && value in STATUS_LABELS
+}
+
 export const STATUS_LABELS: Record<TicketStatus, string> = {
   NEW: 'New',
   OPEN: 'Open',

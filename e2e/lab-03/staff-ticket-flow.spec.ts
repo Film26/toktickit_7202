@@ -36,7 +36,9 @@ test('IT Staff queue + ticket detail: search/sort, claim, IT Priority, status, c
     await page.getByLabel('Password', { exact: true }).fill('ItStaff123!')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/\/dashboard$/)
-    await expect(page.getByRole('heading', { name: 'All Tickets' })).toBeVisible()
+    // Lab 4: the queue moved from /dashboard to /queue.
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Ticket Queue' }).click()
+    await expect(page.getByRole('heading', { name: 'Ticket Queue' })).toBeVisible()
   })
 
   await test.step('Search narrows the queue to the seeded ticket, sorting still shows it', async () => {
@@ -79,7 +81,8 @@ test('IT Staff queue + ticket detail: search/sort, claim, IT Priority, status, c
     await expect(page.getByText('In Progress', { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Mark Waiting' }).click()
-    await expect(page.getByText('Waiting for Requester')).toBeVisible()
+    // exact: Lab 4 adds an aria-live "Status changed to ..." announcement with the same words
+    await expect(page.getByText('Waiting for Requester', { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Resume Progress' }).click()
     await expect(page.getByText('In Progress', { exact: true })).toBeVisible()
@@ -108,6 +111,7 @@ test('IT Staff queue + ticket detail: search/sort, claim, IT Priority, status, c
     await page.getByLabel('Password', { exact: true }).fill('Requester123!')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/\/dashboard$/)
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'My Tickets' }).click()
 
     await page.getByLabel('Search tickets').fill(marker)
     await page.getByRole('button', { name: new RegExp(ticketNumber) }).click()
