@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../../src/auth/AuthContext'
-import RequesterDashboardPage from '../../src/pages/RequesterDashboardPage'
+import MyTicketsPage from '../../src/pages/MyTicketsPage'
 import CreateTicketPage from '../../src/pages/CreateTicketPage'
-import ItStaffDashboardPage from '../../src/pages/ItStaffDashboardPage'
+import TicketQueuePage from '../../src/pages/TicketQueuePage'
 import TicketDetailView from '../../src/components/TicketDetailView'
 
 const REQUESTER = {
@@ -45,7 +45,7 @@ function mockFetchImpl(responses: Record<string, unknown>) {
   })
 }
 
-describe('RequesterDashboardPage', () => {
+describe('MyTicketsPage', () => {
   beforeEach(() => {
     localStorage.setItem('toktickit.token', 'fake-token')
   })
@@ -81,7 +81,7 @@ describe('RequesterDashboardPage', () => {
     render(
       <MemoryRouter>
         <AuthProvider>
-          <RequesterDashboardPage />
+          <MyTicketsPage />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -139,7 +139,7 @@ describe('RequesterDashboardPage', () => {
     render(
       <MemoryRouter>
         <AuthProvider>
-          <RequesterDashboardPage />
+          <MyTicketsPage />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -168,7 +168,7 @@ describe('RequesterDashboardPage', () => {
     render(
       <MemoryRouter>
         <AuthProvider>
-          <RequesterDashboardPage />
+          <MyTicketsPage />
         </AuthProvider>
       </MemoryRouter>,
     )
@@ -247,7 +247,7 @@ describe('CreateTicketPage', () => {
   })
 })
 
-describe('ItStaffDashboardPage', () => {
+describe('TicketQueuePage', () => {
   beforeEach(() => {
     localStorage.setItem('toktickit.token', 'fake-token')
   })
@@ -286,7 +286,7 @@ describe('ItStaffDashboardPage', () => {
     render(
       <MemoryRouter>
         <AuthProvider>
-          <ItStaffDashboardPage />
+          <TicketQueuePage />
         </AuthProvider>
       </MemoryRouter>,
     )

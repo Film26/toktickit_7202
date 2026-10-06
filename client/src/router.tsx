@@ -6,9 +6,11 @@ import LoginPage from './pages/LoginPage'
 import DevRequesterSelectPage from './pages/DevRequesterSelectPage'
 import FirstPasswordChangePage from './pages/FirstPasswordChangePage'
 import RequesterDashboardPage from './pages/RequesterDashboardPage'
+import StaffDashboardPage from './pages/StaffDashboardPage'
+import MyTicketsPage from './pages/MyTicketsPage'
+import TicketQueuePage from './pages/TicketQueuePage'
 import CreateTicketPage from './pages/CreateTicketPage'
 import RequesterTicketDetailPage from './pages/RequesterTicketDetailPage'
-import ItStaffDashboardPage from './pages/ItStaffDashboardPage'
 import ItStaffTicketDetailPage from './pages/ItStaffTicketDetailPage'
 import UserManagementPage from './pages/UserManagementPage'
 import ReferenceDataManagementPage from './pages/ReferenceDataManagementPage'
@@ -18,7 +20,7 @@ import App from './App'
 
 function DashboardPage() {
   const { user } = useAuth()
-  return user?.role === 'REQUESTER' ? <RequesterDashboardPage /> : <ItStaffDashboardPage />
+  return user?.role === 'REQUESTER' ? <RequesterDashboardPage /> : <StaffDashboardPage />
 }
 
 function TicketDetailPage() {
@@ -46,6 +48,22 @@ function AppRouter() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tickets"
+          element={
+            <ProtectedRoute roles={['REQUESTER']}>
+              <MyTicketsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/queue"
+          element={
+            <ProtectedRoute roles={['IT_STAFF', 'ADMINISTRATOR']}>
+              <TicketQueuePage />
             </ProtectedRoute>
           }
         />

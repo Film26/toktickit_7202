@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../../src/auth/AuthContext'
-import ItStaffDashboardPage from '../../src/pages/ItStaffDashboardPage'
+import TicketQueuePage from '../../src/pages/TicketQueuePage'
 
 // Covers Issue #44 (IT Staff Ticket Queue: sort + pagination parity) --
 // client-side: sort control wired to a re-fetch with sort/order query
@@ -47,13 +47,13 @@ function renderPage() {
   return render(
     <MemoryRouter>
       <AuthProvider>
-        <ItStaffDashboardPage />
+        <TicketQueuePage />
       </AuthProvider>
     </MemoryRouter>,
   )
 }
 
-describe('ItStaffDashboardPage - sort and pagination (Issue #44)', () => {
+describe('TicketQueuePage - sort and pagination (Issue #44)', () => {
   beforeEach(() => {
     localStorage.setItem('toktickit.token', 'fake-token')
   })
