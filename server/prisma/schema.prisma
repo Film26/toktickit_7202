@@ -55,6 +55,7 @@ model User {
   internalNotes       InternalNote[]
   actionsTaken        ActionTaken[]
   actionsAssigned     ActionTaken[]   @relation("ActionAssignee")
+  statusChanges       TicketStatusChange[]
   attachmentsUploaded Attachment[]    @relation("AttachmentUploader")
   attachmentsRemoved  Attachment[]    @relation("AttachmentRemover")
 }
@@ -99,15 +100,35 @@ model Ticket {
   resolvedAt        DateTime?
   closedAt          DateTime?
   requesterAppearsResolvedAt DateTime?
+  // Optimistic concurrency for workflow writes (docs/lab-04 BR-19).
+  version           Int            @default(1)
 
   publicComments PublicComment[]
   internalNotes  InternalNote[]
   actionsTaken   ActionTaken[]
   attachments    Attachment[]
+  statusChanges  TicketStatusChange[]
 
   @@index([status])
+  @@index([updatedAt])
   @@index([requesterId])
   @@index([ownerId])
+}
+
+// Append-only status history (docs/lab-04 FR-09, BR-18): one row per
+// successful status change, never updated or deleted by the application.
+model TicketStatusChange {
+  id          Int           @id @default(autoincrement())
+  ticketId    Int
+  ticket      Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromStatus  TicketStatus?
+  toStatus    TicketStatus
+  changedById Int
+  changedBy   User          @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  createdAt   DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([toStatus, createdAt])
 }
 
 model PublicComment {

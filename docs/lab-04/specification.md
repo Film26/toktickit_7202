@@ -290,13 +290,16 @@ Indexes: `(ticketId, actionAt)`, `(assigneeId, status)`.
 
 ### 10.3 Migration, backfill, rollback
 
-- Migration `20261006000000_lab4_actions_taken_workflow`: create enum + columns + table + indexes;
+- Two migrations, one per issue so each PR is reviewable on its own:
+  `20261006000000_lab4_actions_taken` (Issue #65: enum + Action Taken columns + indexes + backfill) and
+  `20261007000000_lab4_ticket_workflow` (Issue #67: `Ticket.version`, `TicketStatusChange`, indexes).
+  Backfill:
   `UPDATE "ActionTaken" SET status='COMPLETED', "actionAt"="createdAt", "assigneeId"="authorId",
   "completedAt"="updatedAt", result='Recorded before Lab 4 (no result captured).'`. Existing Users,
   Tickets, Attachments, Public Comments, Internal Notes are untouched.
 - Rollback/recovery: the migration is additive, so the documented recovery is (1) `pg_dump` before
   `prisma migrate deploy` (README), and (2) a hand-written `down.sql` committed beside the migration
-  that drops the new table, columns, indexes and enum — tested against the test DB in
+  beside each migration that drops the new table, columns, indexes and enum — tested against the test DB in
   `server/tests/lab-04/migration-seed.test.ts` by checking the backfill result, and manually once
   (documented in `tests.md`).
 

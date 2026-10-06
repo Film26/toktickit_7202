@@ -1,11 +1,20 @@
 import type { RequestHandler } from 'express'
 import fs from 'node:fs'
 import { z } from 'zod'
+import type { Response } from 'express'
 import type { TicketStatus } from '@prisma/client'
 import prisma from '../db'
 import { formatTicketNumber } from '../lib/ticketNumber'
 import { loadTicketForUser, serializeTicket, userCanAccessTicket } from '../lib/ticketAccess'
 import { MAX_ACTIVE_ATTACHMENTS_PER_TICKET, sanitizeOriginalFilename } from '../lib/attachmentStorage'
+import {
+  RESOLUTION_GATE_MESSAGE,
+  WorkflowError,
+  applyGuardedUpdate,
+  applyTransition,
+  evaluateResolutionGate,
+  workflowErrorStatus,
+} from '../lib/ticketWorkflow'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const
 const STATUSES = [
@@ -84,6 +93,10 @@ export const createTicket: RequestHandler = async (req, res) => {
           // IT Staff/Administrator may change it independently afterward.
           itPriority: requestedPriority,
         },
+      })
+      // BR-18: the history starts with the ticket's creation.
+      await tx.ticketStatusChange.create({
+        data: { ticketId: created.id, fromStatus: null, toStatus: 'NEW', changedById: req.user!.id },
       })
       return tx.ticket.update({
         where: { id: created.id },
@@ -279,72 +292,66 @@ export const updateRequesterAppearsResolved: RequestHandler = async (req, res) =
   res.status(200).json(updated)
 }
 
-export const confirmResolution: RequestHandler = async (req, res) => {
-  const id = parseId(req.params.id)
-  if (id === null) {
-    res.status(400).json({ error: 'Invalid ticket id' })
-    return
-  }
+// -- workflow helpers (docs/lab-04 BR-18, BR-19) ---------------------------
 
-  const ticket = await prisma.ticket.findUnique({ where: { id } })
-  if (!ticket || ticket.requesterId !== req.user!.id) {
-    res.status(404).json({ error: 'Ticket not found' })
-    return
-  }
-  if (ticket.status !== 'RESOLVED') {
-    res.status(409).json({ error: 'Only a Resolved ticket can be confirmed' })
-    return
-  }
+// Every workflow endpoint accepts the client's last-seen Ticket version.
+const versionOnlySchema = z.object({ version: z.number().int().optional() })
 
-  const updated = await prisma.ticket.update({ where: { id }, data: { status: 'CLOSED', closedAt: new Date() } })
-  res.status(200).json(updated)
+function sendWorkflowError(res: Response, error: unknown) {
+  if (!(error instanceof WorkflowError)) throw error
+  const body: Record<string, unknown> = { error: error.message, ...error.details }
+  if (error.code !== 'NOT_FOUND') body.code = error.code
+  res.status(workflowErrorStatus(error.code)).json(body)
 }
 
-export const rejectResolution: RequestHandler = async (req, res) => {
-  const id = parseId(req.params.id)
-  if (id === null) {
-    res.status(400).json({ error: 'Invalid ticket id' })
-    return
+async function respondWithTransition(res: Response, run: () => Promise<unknown>) {
+  try {
+    res.status(200).json(await run())
+  } catch (error) {
+    sendWorkflowError(res, error)
   }
-
-  const ticket = await prisma.ticket.findUnique({ where: { id } })
-  if (!ticket || ticket.requesterId !== req.user!.id) {
-    res.status(404).json({ error: 'Ticket not found' })
-    return
-  }
-  if (ticket.status !== 'RESOLVED') {
-    res.status(409).json({ error: 'Only a Resolved ticket can be rejected' })
-    return
-  }
-
-  const updated = await prisma.ticket.update({ where: { id }, data: { status: 'REOPENED', resolvedAt: null } })
-  res.status(200).json(updated)
 }
 
-export const requestReopen: RequestHandler = async (req, res) => {
-  const id = parseId(req.params.id)
-  if (id === null) {
-    res.status(400).json({ error: 'Invalid ticket id' })
-    return
+// Requester post-resolution actions: own tickets only (anyone else's -> 404).
+function requesterTransition(
+  from: TicketStatus,
+  to: TicketStatus,
+  invalidMessage: string,
+  data: () => Record<string, unknown> = () => ({}),
+): RequestHandler {
+  return async (req, res) => {
+    const id = parseId(req.params.id)
+    const parsed = versionOnlySchema.safeParse(req.body ?? {})
+    if (id === null || !parsed.success) {
+      res.status(400).json({ error: 'Invalid ticket id' })
+      return
+    }
+    await respondWithTransition(res, () =>
+      applyTransition({
+        ticketId: id,
+        from: [from],
+        to,
+        actorId: req.user!.id,
+        version: parsed.data.version,
+        where: { requesterId: req.user!.id },
+        data: data(),
+        invalidMessage,
+      }),
+    )
   }
-
-  const ticket = await prisma.ticket.findUnique({ where: { id } })
-  if (!ticket || ticket.requesterId !== req.user!.id) {
-    res.status(404).json({ error: 'Ticket not found' })
-    return
-  }
-  if (ticket.status !== 'CLOSED') {
-    res.status(409).json({ error: 'Only a Closed ticket can be reopened' })
-    return
-  }
-
-  const updated = await prisma.ticket.update({ where: { id }, data: { status: 'REOPENED' } })
-  res.status(200).json(updated)
 }
+
+export const confirmResolution = requesterTransition('RESOLVED', 'CLOSED', 'Only a Resolved ticket can be confirmed', () => ({
+  closedAt: new Date(),
+}))
+export const rejectResolution = requesterTransition('RESOLVED', 'REOPENED', 'Only a Resolved ticket can be rejected', () => ({
+  resolvedAt: null,
+}))
+export const requestReopen = requesterTransition('CLOSED', 'REOPENED', 'Only a Closed ticket can be reopened')
 
 // -- IT staff / administrator actions ------------------------------------
 
-const ownerBodySchema = z.object({ ownerId: z.number().int().nullable() })
+const ownerBodySchema = z.object({ ownerId: z.number().int().nullable(), version: z.number().int().optional() })
 
 export const updateTicketOwner: RequestHandler = async (req, res) => {
   const id = parseId(req.params.id)
@@ -362,15 +369,10 @@ export const updateTicketOwner: RequestHandler = async (req, res) => {
     }
   }
 
-  try {
-    const updated = await prisma.ticket.update({ where: { id }, data: { ownerId: parsed.data.ownerId } })
-    res.status(200).json(updated)
-  } catch {
-    res.status(404).json({ error: 'Ticket not found' })
-  }
+  await respondWithTransition(res, () => applyGuardedUpdate(id, parsed.data.version, { ownerId: parsed.data.ownerId }))
 }
 
-const itPriorityBodySchema = z.object({ itPriority: z.enum(PRIORITIES) })
+const itPriorityBodySchema = z.object({ itPriority: z.enum(PRIORITIES), version: z.number().int().optional() })
 
 export const updateTicketItPriority: RequestHandler = async (req, res) => {
   const id = parseId(req.params.id)
@@ -379,20 +381,14 @@ export const updateTicketItPriority: RequestHandler = async (req, res) => {
     res.status(400).json({ error: 'Invalid request' })
     return
   }
-
-  try {
-    const updated = await prisma.ticket.update({ where: { id }, data: { itPriority: parsed.data.itPriority } })
-    res.status(200).json(updated)
-  } catch {
-    res.status(404).json({ error: 'Ticket not found' })
-  }
+  await respondWithTransition(res, () => applyGuardedUpdate(id, parsed.data.version, { itPriority: parsed.data.itPriority }))
 }
 
-const statusBodySchema = z.object({ status: z.enum(STATUSES) })
+const statusBodySchema = z.object({ status: z.enum(STATUSES), version: z.number().int().optional() })
 
-// Transition matrix per docs/lab-03/specification.md section 7. Resolve/Close/Cancel/
-// Confirm-Resolution/Reject-Resolution/Request-Reopen have their own dedicated endpoints
-// below (with their own preconditions, e.g. resolve requires resolutionSummary) and are
+// Transition matrix per docs/lab-04/specification.md section 7 (unchanged from
+// Lab 3). Resolve/Close/Cancel/Confirm/Reject/Request-Reopen have their own
+// endpoints with their own preconditions (e.g. the resolution gate) and are
 // intentionally not reachable through this generic status endpoint.
 const ALLOWED_DIRECT_TRANSITIONS: Partial<Record<TicketStatus, TicketStatus[]>> = {
   NEW: ['OPEN', 'IN_PROGRESS'],
@@ -409,24 +405,24 @@ export const updateTicketStatus: RequestHandler = async (req, res) => {
     res.status(400).json({ error: 'Invalid request' })
     return
   }
+  const to = parsed.data.status
+  const from = (Object.keys(ALLOWED_DIRECT_TRANSITIONS) as TicketStatus[]).filter((status) =>
+    ALLOWED_DIRECT_TRANSITIONS[status]!.includes(to),
+  )
 
-  const ticket = await prisma.ticket.findUnique({ where: { id } })
-  if (!ticket) {
-    res.status(404).json({ error: 'Ticket not found' })
-    return
+  try {
+    res.status(200).json(await applyTransition({ ticketId: id, from, to, actorId: req.user!.id, version: parsed.data.version }))
+  } catch (error) {
+    if (error instanceof WorkflowError && error.code === 'INVALID_TRANSITION') {
+      const current = await prisma.ticket.findUnique({ where: { id }, select: { status: true } })
+      res.status(409).json({ error: `Cannot transition from ${current?.status} to ${to} via this endpoint`, code: 'INVALID_TRANSITION' })
+      return
+    }
+    sendWorkflowError(res, error)
   }
-
-  const allowed = ALLOWED_DIRECT_TRANSITIONS[ticket.status] ?? []
-  if (!allowed.includes(parsed.data.status)) {
-    res.status(409).json({ error: `Cannot transition from ${ticket.status} to ${parsed.data.status} via this endpoint` })
-    return
-  }
-
-  const updated = await prisma.ticket.update({ where: { id }, data: { status: parsed.data.status } })
-  res.status(200).json(updated)
 }
 
-const resolveSchema = z.object({ resolutionSummary: z.string().min(1) })
+const resolveSchema = z.object({ resolutionSummary: z.string().trim().min(1), version: z.number().int().optional() })
 
 export const resolveTicket: RequestHandler = async (req, res) => {
   const id = parseId(req.params.id)
@@ -436,63 +432,76 @@ export const resolveTicket: RequestHandler = async (req, res) => {
     return
   }
 
-  const ticket = await prisma.ticket.findUnique({ where: { id } })
-  if (!ticket) {
-    res.status(404).json({ error: 'Ticket not found' })
-    return
-  }
-  if (ticket.status !== 'IN_PROGRESS' && ticket.status !== 'WAITING_FOR_REQUESTER') {
-    res.status(409).json({ error: 'Only an In Progress or Waiting for Requester ticket can be resolved' })
-    return
-  }
-
-  const updated = await prisma.ticket.update({
-    where: { id },
-    data: { status: 'RESOLVED', resolutionSummary: parsed.data.resolutionSummary, resolvedAt: new Date() },
-  })
-  res.status(200).json(updated)
+  await respondWithTransition(res, () =>
+    applyTransition({
+      ticketId: id,
+      from: ['IN_PROGRESS', 'WAITING_FOR_REQUESTER'],
+      to: 'RESOLVED',
+      actorId: req.user!.id,
+      version: parsed.data.version,
+      data: { resolutionSummary: parsed.data.resolutionSummary, resolvedAt: new Date() },
+      invalidMessage: 'Only an In Progress or Waiting for Requester ticket can be resolved',
+      // BR-15 resolution gate, inside the transaction so it holds even when a
+      // client calls this endpoint directly.
+      before: async (tx) => {
+        const [open, completed] = await Promise.all([
+          tx.actionTaken.count({ where: { ticketId: id, status: { in: ['PLANNED', 'IN_PROGRESS'] } } }),
+          tx.actionTaken.count({ where: { ticketId: id, status: 'COMPLETED' } }),
+        ])
+        if (!evaluateResolutionGate({ open, completed }).allowed) {
+          throw new WorkflowError('RESOLUTION_GATE', RESOLUTION_GATE_MESSAGE, { openActions: open, completedActions: completed })
+        }
+      },
+    }),
+  )
 }
 
 export const cancelTicket: RequestHandler = async (req, res) => {
   const id = parseId(req.params.id)
-  if (id === null) {
+  const parsed = versionOnlySchema.safeParse(req.body ?? {})
+  if (id === null || !parsed.success) {
     res.status(400).json({ error: 'Invalid ticket id' })
     return
   }
 
-  const ticket = await prisma.ticket.findUnique({ where: { id } })
-  if (!ticket) {
-    res.status(404).json({ error: 'Ticket not found' })
-    return
-  }
-  if (ticket.status !== 'NEW' && ticket.status !== 'OPEN') {
-    res.status(409).json({ error: 'Only a New or Open ticket can be cancelled' })
-    return
-  }
-
-  const updated = await prisma.ticket.update({ where: { id }, data: { status: 'CANCELLED' } })
-  res.status(200).json(updated)
+  await respondWithTransition(res, () =>
+    applyTransition({
+      ticketId: id,
+      from: ['NEW', 'OPEN'],
+      to: 'CANCELLED',
+      actorId: req.user!.id,
+      version: parsed.data.version,
+      invalidMessage: 'Only a New or Open ticket can be cancelled',
+      // BR-17: a cancelled ticket leaves no open work behind.
+      before: async (tx) => {
+        await tx.actionTaken.updateMany({
+          where: { ticketId: id, status: { in: ['PLANNED', 'IN_PROGRESS'] } },
+          data: { status: 'CANCELLED', cancelledAt: new Date(), version: { increment: 1 } },
+        })
+      },
+    }),
+  )
 }
 
 export const closeTicket: RequestHandler = async (req, res) => {
   const id = parseId(req.params.id)
-  if (id === null) {
+  const parsed = versionOnlySchema.safeParse(req.body ?? {})
+  if (id === null || !parsed.success) {
     res.status(400).json({ error: 'Invalid ticket id' })
     return
   }
 
-  const ticket = await prisma.ticket.findUnique({ where: { id } })
-  if (!ticket) {
-    res.status(404).json({ error: 'Ticket not found' })
-    return
-  }
-  if (ticket.status !== 'RESOLVED') {
-    res.status(409).json({ error: 'Only a Resolved ticket can be closed' })
-    return
-  }
-
-  const updated = await prisma.ticket.update({ where: { id }, data: { status: 'CLOSED', closedAt: new Date() } })
-  res.status(200).json(updated)
+  await respondWithTransition(res, () =>
+    applyTransition({
+      ticketId: id,
+      from: ['RESOLVED'],
+      to: 'CLOSED',
+      actorId: req.user!.id,
+      version: parsed.data.version,
+      data: { closedAt: new Date() },
+      invalidMessage: 'Only a Resolved ticket can be closed',
+    }),
+  )
 }
 
 // -- child entities -------------------------------------------------------
