@@ -4,7 +4,7 @@ import ActionStatusBadge from './ActionStatusBadge'
 import ActionForm from './ActionForm'
 
 // Actions Taken area on Ticket Detail (handout 8.3, docs/lab-04/ui-spec.md
-// section 6): list (table >= md, stacked cards on mobile), Create mode and
+// section 6): list (table >= lg, stacked cards on tablet and mobile), Create mode and
 // View/Edit mode. Requesters get the same list read-only.
 
 const LOCKED_TICKET_STATUSES: TicketStatus[] = ['RESOLVED', 'CLOSED', 'CANCELLED']
@@ -122,7 +122,7 @@ function ActionsTakenPanel({
         </p>
       ) : (
         <>
-          <div className="table-responsive d-none d-md-block">
+          <div className="table-responsive position-relative d-none d-lg-block">
             <table className="table table-sm align-middle mb-0">
               <caption className="visually-hidden">Actions Taken, oldest first</caption>
               <thead>
@@ -171,7 +171,7 @@ function ActionsTakenPanel({
             </table>
           </div>
 
-          <ul className="list-unstyled d-md-none mb-0">
+          <ul className="list-unstyled d-lg-none mb-0">
             {actions.map((action) => (
               <li key={action.id} className="border rounded p-3 mb-2">
                 <div className="d-flex justify-content-between align-items-start gap-2 mb-2">

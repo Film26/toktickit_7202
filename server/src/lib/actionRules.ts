@@ -36,6 +36,13 @@ export function ticketAcceptsActions(status: TicketStatus) {
   return ACTION_EDITABLE_TICKET_STATUSES.includes(status)
 }
 
+// The Action Date/Time picker has minute precision, so "now" in a form opened
+// in the same minute the ticket was created reads as a few seconds *before*
+// the ticket. Compare at minute precision so that is not rejected.
+function startOfMinute(date: Date) {
+  return Math.floor(date.getTime() / 60_000) * 60_000
+}
+
 export type ActionFields = {
   actionAt: Date
   description: string
@@ -76,7 +83,7 @@ export function validateActionFields(fields: ActionFields, ticketCreatedAt: Date
 
   if (Number.isNaN(fields.actionAt.getTime())) {
     errors.actionAt = 'Action Date/Time is invalid'
-  } else if (fields.actionAt.getTime() < ticketCreatedAt.getTime()) {
+  } else if (fields.actionAt.getTime() < startOfMinute(ticketCreatedAt)) {
     errors.actionAt = 'Action Date/Time cannot be before the ticket was created'
   } else if (fields.status !== 'PLANNED' && fields.actionAt.getTime() > now.getTime() + FUTURE_TOLERANCE_MS) {
     errors.actionAt = 'Only a Planned action can be dated in the future'
