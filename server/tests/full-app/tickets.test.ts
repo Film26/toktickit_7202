@@ -137,7 +137,8 @@ describe('ticket lifecycle', () => {
     const updatedAction = await request(app)
       .patch(`/api/tickets/${ticketId}/actions/${action.body.id}`)
       .set('Authorization', `Bearer ${itStaffToken}`)
-      .send({ description: 'Restarted the service and confirmed fix' })
+      // Lab 4 (BR-12): edits must send the version they were based on.
+      .send({ description: 'Restarted the service and confirmed fix', version: action.body.version })
     expect(updatedAction.status).toBe(200)
   })
 
