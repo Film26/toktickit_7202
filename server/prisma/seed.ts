@@ -1,4 +1,4 @@
-import { PrismaClient, Role, TicketStatus } from '@prisma/client'
+import { ActionStatus, PrismaClient, Role, TicketStatus } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -250,6 +250,44 @@ async function main() {
       itPriority: null,
       status: TicketStatus.NEW,
     },
+    // Lab 4 (labsheet Section 5.3): make sure every one of the 8 statuses is
+    // present, so each dashboard card has non-zero demo data somewhere.
+    {
+      ticketNumber: 'TKT-SAMPLE-000007',
+      requesterId: jennifer.id,
+      ownerId: marcus.id,
+      categoryName: 'Account and Access',
+      relatedSystemName: 'Email / Office 365',
+      summary: 'Shared mailbox missing from Outlook',
+      description: 'The team shared mailbox disappeared from my Outlook folder list this morning.',
+      requestedPriority: 'MEDIUM',
+      itPriority: 'MEDIUM',
+      status: TicketStatus.OPEN,
+    },
+    {
+      ticketNumber: 'TKT-SAMPLE-000008',
+      requesterId: requester.id,
+      ownerId: sofia.id,
+      categoryName: 'Network',
+      relatedSystemName: 'Campus Wi-Fi',
+      summary: 'Wi-Fi drops in meeting room 4B',
+      description: 'Laptops lose the campus Wi-Fi every few minutes, but only inside meeting room 4B.',
+      requestedPriority: 'HIGH',
+      itPriority: 'HIGH',
+      status: TicketStatus.WAITING_FOR_REQUESTER,
+    },
+    {
+      ticketNumber: 'TKT-SAMPLE-000009',
+      requesterId: david.id,
+      ownerId: null,
+      categoryName: 'Hardware',
+      relatedSystemName: 'Desktop Workstation',
+      summary: 'Duplicate request: second monitor',
+      description: 'Submitted twice by mistake -- same request as an earlier ticket.',
+      requestedPriority: 'LOW',
+      itPriority: 'LOW',
+      status: TicketStatus.CANCELLED,
+    },
   ]
 
   const createdTickets = new Map<string, number>()
@@ -325,6 +363,127 @@ async function main() {
         await prisma.publicComment.create({ data: { ticketId, authorId: seedComment.authorId, body: seedComment.body } })
       }
     }
+  }
+
+  // Actions Taken (Lab 4, labsheet Section 5.3): Tickets with zero (000002,
+  // 000006, 000007, 000009), one (000003, 000005, 000008) and many (000001,
+  // 000004) actions, performed by and assigned to different IT Staff --
+  // including actions not assigned to the Ticket Owner (BR-02). Keyed by a
+  // fixed clientRequestId, so re-running the seed never duplicates them.
+  const actionSeeds: Array<{
+    key: string
+    ticketNumber: string
+    authorId: number
+    assigneeId: number
+    status: ActionStatus
+    description: string
+    result?: string
+    followUpNote?: string
+    attachmentNotes?: string
+  }> = [
+    {
+      key: 'seed-action-000001-a',
+      ticketNumber: 'TKT-SAMPLE-000001',
+      authorId: itStaff.id,
+      assigneeId: itStaff.id,
+      status: ActionStatus.COMPLETED,
+      description: 'Ran the battery health report and checked power settings.',
+      result: 'Battery health at 78%; power plan was reset to High Performance by the update.',
+      followUpNote: 'Order a replacement battery if health drops below 75%.',
+      attachmentNotes: 'battery-report.html attached to the ticket.',
+    },
+    {
+      key: 'seed-action-000001-b',
+      ticketNumber: 'TKT-SAMPLE-000001',
+      authorId: itStaff.id,
+      assigneeId: marcus.id,
+      status: ActionStatus.IN_PROGRESS,
+      description: 'Request a replacement battery from the hardware vendor.',
+    },
+    {
+      key: 'seed-action-000001-c',
+      ticketNumber: 'TKT-SAMPLE-000001',
+      authorId: marcus.id,
+      assigneeId: itStaff.id,
+      status: ActionStatus.PLANNED,
+      description: 'Install the replacement battery and re-test runtime.',
+    },
+    {
+      key: 'seed-action-000003-a',
+      ticketNumber: 'TKT-SAMPLE-000003',
+      authorId: marcus.id,
+      assigneeId: marcus.id,
+      status: ActionStatus.COMPLETED,
+      description: 'Raised the VPN profile idle timeout from 15 to 60 minutes.',
+      result: 'Requester confirmed the connection stayed up for a full working day.',
+    },
+    {
+      key: 'seed-action-000004-a',
+      ticketNumber: 'TKT-SAMPLE-000004',
+      authorId: itStaff.id,
+      assigneeId: itStaff.id,
+      status: ActionStatus.COMPLETED,
+      description: 'Checked the account is not locked in the directory.',
+      result: 'Account healthy; the problem is on the device.',
+    },
+    {
+      key: 'seed-action-000004-b',
+      ticketNumber: 'TKT-SAMPLE-000004',
+      authorId: itStaff.id,
+      assigneeId: itStaff.id,
+      status: ActionStatus.COMPLETED,
+      description: 'Removed the saved Wi-Fi profile and re-joined with the new password.',
+      result: 'Laptop reconnected to the campus network.',
+    },
+    {
+      key: 'seed-action-000005-a',
+      ticketNumber: 'TKT-SAMPLE-000005',
+      authorId: sofia.id,
+      assigneeId: sofia.id,
+      status: ActionStatus.CANCELLED,
+      description: 'Replace tray 2 pickup roller (vendor visit).',
+    },
+    {
+      key: 'seed-action-000008-a',
+      ticketNumber: 'TKT-SAMPLE-000008',
+      authorId: sofia.id,
+      assigneeId: sofia.id,
+      status: ActionStatus.COMPLETED,
+      description: 'Checked access-point logs for meeting room 4B.',
+      result: 'Access point reboots every few minutes; firmware update scheduled.',
+      followUpNote: 'Requester to confirm whether drops continue after the overnight firmware update.',
+    },
+  ]
+
+  for (const [index, seedAction] of actionSeeds.entries()) {
+    const ticketId = createdTickets.get(seedAction.ticketNumber)
+    if (!ticketId) continue
+    const existing = await prisma.actionTaken.findUnique({
+      where: { ticketId_clientRequestId: { ticketId, clientRequestId: seedAction.key } },
+    })
+    if (existing) continue
+
+    const ticket = await prisma.ticket.findUniqueOrThrow({ where: { id: ticketId }, select: { createdAt: true } })
+    // Dated just after the ticket was created (BR-10), one second apart so
+    // the list order is the order above.
+    const actionAt = new Date(ticket.createdAt.getTime() + (index + 1) * 1000)
+    await prisma.actionTaken.create({
+      data: {
+        ticketId,
+        clientRequestId: seedAction.key,
+        authorId: seedAction.authorId,
+        assigneeId: seedAction.assigneeId,
+        status: seedAction.status,
+        actionAt,
+        description: seedAction.description,
+        result: seedAction.result,
+        followUpRequired: !!seedAction.followUpNote,
+        followUpNote: seedAction.followUpNote,
+        attachmentNotes: seedAction.attachmentNotes,
+        completedAt: seedAction.status === ActionStatus.COMPLETED ? actionAt : null,
+        cancelledAt: seedAction.status === ActionStatus.CANCELLED ? actionAt : null,
+      },
+    })
   }
 }
 

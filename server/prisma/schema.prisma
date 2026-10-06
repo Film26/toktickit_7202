@@ -20,6 +20,13 @@ enum Priority {
   URGENT
 }
 
+enum ActionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 enum TicketStatus {
   NEW
   OPEN
@@ -47,6 +54,7 @@ model User {
   publicComments      PublicComment[]
   internalNotes       InternalNote[]
   actionsTaken        ActionTaken[]
+  actionsAssigned     ActionTaken[]   @relation("ActionAssignee")
   attachmentsUploaded Attachment[]    @relation("AttachmentUploader")
   attachmentsRemoved  Attachment[]    @relation("AttachmentRemover")
 }
@@ -123,14 +131,32 @@ model InternalNote {
 }
 
 model ActionTaken {
-  id          Int      @id @default(autoincrement())
-  ticketId    Int
-  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  authorId    Int
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  description String   @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               Int          @id @default(autoincrement())
+  ticketId         Int
+  ticket           Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  // "Performed By" (handout 4.1): always the authenticated user who recorded
+  // the action, set by the server. Column name kept from pre-Lab-4 data.
+  authorId         Int
+  author           User         @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  assigneeId       Int?
+  assignee         User?        @relation("ActionAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  actionAt         DateTime     @default(now())
+  description      String       @db.Text
+  result           String?      @db.Text
+  status           ActionStatus @default(PLANNED)
+  followUpRequired Boolean      @default(false)
+  followUpNote     String?      @db.Text
+  attachmentNotes  String?      @db.VarChar(500)
+  clientRequestId  String?      @db.VarChar(100)
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+
+  @@unique([ticketId, clientRequestId])
+  @@index([ticketId, actionAt])
+  @@index([assigneeId, status])
 }
 
 model Attachment {
