@@ -67,10 +67,10 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | UI-01 | UI | AC-26 | Staff Dashboard renders cards, deltas, lists, drill-down hrefs | correct | client/tests/lab-04/StaffDashboard.test.tsx | Planned |
 | UI-02 | UI | AC-26 | Staff Dashboard loading / error+Retry / empty / Admin user card | correct | client/tests/lab-04/StaffDashboard.test.tsx | Planned |
 | UI-03 | UI | AC-26 | Requester Dashboard cards, attention list, empty state, error | correct | client/tests/lab-04/RequesterDashboard.test.tsx | Planned |
-| UI-04 | UI | AC-24 | Actions Taken list + Add form inline validation (follow-up note, result) | errors under fields, no request sent | client/tests/lab-04/ActionsTaken.test.tsx | Planned |
-| UI-05 | UI | AC-24 | Server 400/500 keeps entered values; Save disabled while saving | values retained | client/tests/lab-04/ActionsTaken.test.tsx | Planned |
-| UI-06 | UI | AC-08 | 409 STALE_UPDATE shows ConflictAlert + Reload | shown | client/tests/lab-04/ActionsTaken.test.tsx | Planned |
-| UI-07 | UI | AC-24 | Requester sees actions, no Add/Edit | hidden | client/tests/lab-04/ActionsTaken.test.tsx | Planned |
+| UI-04 | UI | AC-24 | Actions Taken list + Add form inline validation (follow-up note, result) | errors under fields, no request sent | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
+| UI-05 | UI | AC-24 | Server 400/500 keeps entered values; Save disabled while saving | values retained | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
+| UI-06 | UI | AC-08 | 409 STALE_UPDATE shows ConflictAlert + Reload | shown | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
+| UI-07 | UI | AC-24 | Requester sees actions, no Add/Edit | hidden | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
 | UI-08 | UI | AC-25 | Buttons per status/role match matrix | exact set | client/tests/lab-04/TicketWorkflow.test.tsx | Planned |
 | UI-09 | UI | AC-25 | Resolve disabled with gate hint; success refreshes badge + history | correct | client/tests/lab-04/TicketWorkflow.test.tsx | Planned |
 | UI-10 | UI | FR-14 | Queue / My Tickets read drill-down params into the API call | query forwarded | client/tests/lab-04/StaffDashboard.test.tsx | Planned |
@@ -134,4 +134,6 @@ Lab 3 tests that resolved a Ticket without any Action Taken must first record a 
 |---|---|---|---|
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `server: npx vitest run` | 23 files, **225/225 passed** (181 Lab 1–3 + 44 Lab 4) |
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `client: npx vitest run` | 12 files, **45/45 passed** |
+| 2026-10-07 | `feat/issue-66-actions-taken-ui` | `client: npx vitest run` | 13 files, **54/54 passed** (9 new in `ActionsTaken.test.tsx`) |
+| 2026-10-07 | `feat/issue-66-actions-taken-ui` | Manual Playwright smoke against real API (staff adds action at 1280 + 375 px) | Pass; 0 console errors, 0 px horizontal overflow. Found + fixed: line-clamp on `<td>` broke table column layout |
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `prisma migrate deploy` on dev + test DBs, row counts before/after | All 8 tables' counts identical; 6 legacy test-DB actions backfilled (0 violations) |
