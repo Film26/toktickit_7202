@@ -9,7 +9,8 @@ import {
 import { ApiError } from '../api/client'
 import ErrorAlert from './ErrorAlert'
 import ConflictAlert from './ConflictAlert'
-import ActionStatusBadge, { ACTION_STATUS_LABELS } from './ActionStatusBadge'
+import ActionStatusBadge from './ActionStatusBadge'
+import { ACTION_STATUS_LABELS } from '../lib/ticketWorkflow'
 import {
   ATTACHMENT_NOTES_MAX,
   DESCRIPTION_MAX,

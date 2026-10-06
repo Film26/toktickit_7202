@@ -3,7 +3,8 @@ import { useState, type FormEvent } from 'react'
 type CommentFormProps = {
   placeholder: string
   buttonLabel: string
-  onSubmit: (body: string) => Promise<void>
+  // Resolve false when the save failed, so the typed text is kept (FR-17).
+  onSubmit: (body: string) => Promise<boolean | void>
 }
 
 function CommentForm({ placeholder, buttonLabel, onSubmit }: CommentFormProps) {
@@ -15,8 +16,8 @@ function CommentForm({ placeholder, buttonLabel, onSubmit }: CommentFormProps) {
     if (!value.trim()) return
     setIsSubmitting(true)
     try {
-      await onSubmit(value.trim())
-      setValue('')
+      const saved = await onSubmit(value.trim())
+      if (saved !== false) setValue('')
     } finally {
       setIsSubmitting(false)
     }
@@ -28,6 +29,7 @@ function CommentForm({ placeholder, buttonLabel, onSubmit }: CommentFormProps) {
         type="text"
         className="form-control"
         placeholder={placeholder}
+        aria-label={placeholder}
         value={value}
         onChange={(event) => setValue(event.target.value)}
       />

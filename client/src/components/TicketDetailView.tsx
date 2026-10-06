@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import {
@@ -35,6 +35,8 @@ import StatusBadge from './StatusBadge'
 import CommentList from './CommentList'
 import CommentForm from './CommentForm'
 import ActionsTakenPanel from './ActionsTakenPanel'
+import ConflictAlert from './ConflictAlert'
+import { STATUS_LABELS, allowedCommands, canResolve, resolutionGate, type WorkflowCommand } from '../lib/ticketWorkflow'
 
 const PRIORITY_OPTIONS: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
@@ -43,7 +45,7 @@ type TicketDetailViewProps = {
   backLabel: string
 }
 
-type TabKey = 'comments' | 'notes' | 'actions' | 'attachments'
+type TabKey = 'comments' | 'notes' | 'actions' | 'attachments' | 'history'
 
 function formatDateTime(iso: string | null) {
   if (!iso) return '-'
@@ -74,6 +76,10 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [isConflict, setIsConflict] = useState(false)
+  const [isBusy, setIsBusy] = useState(false)
+  const busyRef = useRef(false)
+  const [announcement, setAnnouncement] = useState('')
   const [tab, setTab] = useState<TabKey>('comments')
 
   const [assignableOwners, setAssignableOwners] = useState<AssignableOwner[]>([])
@@ -116,18 +122,54 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
       })
   }, [token, isStaff])
 
+  // Runs one write at a time (no double submit, FR-16), refreshes the ticket
+  // on success, and reports success so forms only clear their input when the
+  // save actually worked (FR-17).
   const runAction = useCallback(
-    async (action: () => Promise<unknown>) => {
+    async (action: () => Promise<unknown>, successMessage?: string): Promise<boolean> => {
+      if (busyRef.current) return false
+      busyRef.current = true
+      setIsBusy(true)
       setActionError(null)
+      setIsConflict(false)
       try {
         await action()
         await load(true)
+        if (successMessage) setAnnouncement(successMessage)
+        return true
       } catch (err) {
-        setActionError(err instanceof ApiError ? err.message : 'Action failed.')
+        if (err instanceof ApiError && err.code === 'STALE_UPDATE') setIsConflict(true)
+        else setActionError(err instanceof ApiError ? err.message : 'Action failed. Check your connection and try again.')
+        return false
+      } finally {
+        busyRef.current = false
+        setIsBusy(false)
       }
     },
     [load],
   )
+
+  const runCommand = (command: WorkflowCommand) => {
+    if (!ticket || !token) return Promise.resolve(false)
+    const version = ticket.version
+    switch (command.kind) {
+      case 'status':
+        return runAction(() => updateTicketStatus(token, ticket.id, command.to, version), `Status changed to ${STATUS_LABELS[command.to]}`)
+      case 'cancel':
+        if (!window.confirm('Cancel this ticket? Any open Actions Taken are cancelled too. This cannot be undone.')) {
+          return Promise.resolve(false)
+        }
+        return runAction(() => cancelTicket(token, ticket.id, version), 'Status changed to Cancelled')
+      case 'close':
+        return runAction(() => closeTicket(token, ticket.id, version), 'Status changed to Closed')
+      case 'confirm':
+        return runAction(() => confirmResolution(token, ticket.id, version), 'Status changed to Closed')
+      case 'reject':
+        return runAction(() => rejectResolution(token, ticket.id, version), 'Status changed to Reopened')
+      case 'reopen':
+        return runAction(() => requestReopen(token, ticket.id, version), 'Status changed to Reopened')
+    }
+  }
 
   if (isLoading) return <LoadingSpinner />
 
@@ -144,6 +186,8 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
 
   if (!ticket || !token) return null
 
+  const gate = resolutionGate(ticket.actionsTaken)
+
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
@@ -155,6 +199,18 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
         </Link>
       </div>
 
+      <div className="visually-hidden" role="status" aria-live="polite">
+        {announcement}
+      </div>
+      {isConflict && (
+        <ConflictAlert
+          message="This ticket was changed by someone else. Reload to see the latest version before trying again."
+          onReload={() => {
+            setIsConflict(false)
+            void load(true)
+          }}
+        />
+      )}
       {actionError && <ErrorAlert message={actionError} />}
 
       <div className="card shadow-sm mb-3">
@@ -227,8 +283,9 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                   className="form-select form-select-sm"
                   style={{ width: 'auto' }}
                   value={ticket.requestedPriority}
+                  disabled={isBusy}
                   onChange={(event) =>
-                    runAction(() => updateTicketPriority(token, ticket.id, event.target.value as Priority))
+                    void runAction(() => updateTicketPriority(token, ticket.id, event.target.value as Priority))
                   }
                 >
                   {PRIORITY_OPTIONS.map((priority) => (
@@ -240,109 +297,31 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
               </div>
             )}
 
-            {isRequester && ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && (
+            {isRequester && !['RESOLVED', 'CLOSED', 'CANCELLED'].includes(ticket.status) && (
               <button
                 type="button"
                 className={`btn btn-sm ${ticket.requesterAppearsResolvedAt ? 'btn-secondary' : 'btn-outline-success'}`}
+                disabled={isBusy}
                 onClick={() =>
-                  runAction(() => updateRequesterAppearsResolved(token, ticket.id, !ticket.requesterAppearsResolvedAt))
+                  void runAction(() => updateRequesterAppearsResolved(token, ticket.id, !ticket.requesterAppearsResolvedAt))
                 }
               >
                 {ticket.requesterAppearsResolvedAt ? 'Undo Appears Resolved' : 'Mark as Appears Resolved'}
               </button>
             )}
 
-            {isRequester && ticket.status === 'RESOLVED' && (
-              <>
+            {user &&
+              allowedCommands(ticket.status, user.role).map((command) => (
                 <button
+                  key={command.label}
                   type="button"
-                  className="btn btn-success btn-sm"
-                  onClick={() => runAction(() => confirmResolution(token, ticket.id))}
+                  className={`btn btn-sm ${command.variant}`}
+                  disabled={isBusy}
+                  onClick={() => void runCommand(command)}
                 >
-                  Confirm Resolution
+                  {command.label}
                 </button>
-                <button
-                  type="button"
-                  className="btn btn-outline-danger btn-sm"
-                  onClick={() => runAction(() => rejectResolution(token, ticket.id))}
-                >
-                  Reject Resolution
-                </button>
-              </>
-            )}
-
-            {isRequester && ticket.status === 'CLOSED' && (
-              <button
-                type="button"
-                className="btn btn-outline-warning btn-sm"
-                onClick={() => runAction(() => requestReopen(token, ticket.id))}
-              >
-                Request Reopening
-              </button>
-            )}
-
-            {isStaff && (ticket.status === 'NEW' || ticket.status === 'REOPENED') && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'IN_PROGRESS'))}
-                >
-                  Start Progress
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline-primary btn-sm"
-                  onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'OPEN'))}
-                >
-                  Acknowledge
-                </button>
-              </>
-            )}
-
-            {isStaff && ticket.status === 'OPEN' && (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'IN_PROGRESS'))}
-              >
-                Start Progress
-              </button>
-            )}
-
-            {isStaff && (ticket.status === 'NEW' || ticket.status === 'OPEN') && (
-              <button
-                type="button"
-                className="btn btn-outline-danger btn-sm"
-                onClick={() => {
-                  if (window.confirm('Cancel this ticket? This cannot be undone.')) {
-                    runAction(() => cancelTicket(token, ticket.id))
-                  }
-                }}
-              >
-                Cancel Ticket
-              </button>
-            )}
-
-            {isStaff && ticket.status === 'IN_PROGRESS' && (
-              <button
-                type="button"
-                className="btn btn-outline-warning btn-sm"
-                onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'WAITING_FOR_REQUESTER'))}
-              >
-                Mark Waiting
-              </button>
-            )}
-
-            {isStaff && ticket.status === 'WAITING_FOR_REQUESTER' && (
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm"
-                onClick={() => runAction(() => updateTicketStatus(token, ticket.id, 'IN_PROGRESS'))}
-              >
-                Resume Progress
-              </button>
-            )}
+              ))}
 
             {isStaff && (
               <div className="d-flex align-items-center gap-2">
@@ -354,9 +333,12 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                   className="form-select form-select-sm"
                   style={{ width: 'auto' }}
                   value={ticket.owner?.id ?? ''}
+                  disabled={isBusy}
                   onChange={(event) =>
-                    runAction(() =>
-                      updateTicketOwner(token, ticket.id, event.target.value ? Number(event.target.value) : null),
+                    void runAction(
+                      () =>
+                        updateTicketOwner(token, ticket.id, event.target.value ? Number(event.target.value) : null, ticket.version),
+                      'Ticket owner updated',
                     )
                   }
                 >
@@ -380,8 +362,12 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                   className="form-select form-select-sm"
                   style={{ width: 'auto' }}
                   value={ticket.itPriority ?? ''}
+                  disabled={isBusy}
                   onChange={(event) =>
-                    runAction(() => updateTicketItPriority(token, ticket.id, event.target.value as Priority))
+                    void runAction(
+                      () => updateTicketItPriority(token, ticket.id, event.target.value as Priority, ticket.version),
+                      'IT Priority updated',
+                    )
                   }
                 >
                   <option value="" disabled>
@@ -395,39 +381,51 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                 </select>
               </div>
             )}
-
-            {isStaff && ticket.status === 'RESOLVED' && (
-              <button
-                type="button"
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => runAction(() => closeTicket(token, ticket.id))}
-              >
-                Close Ticket
-              </button>
-            )}
           </div>
 
-          {isStaff && (ticket.status === 'IN_PROGRESS' || ticket.status === 'WAITING_FOR_REQUESTER') && (
+          {user && canResolve(ticket.status, user.role) && (
             <form
-              className="d-flex gap-2 mt-3"
+              className="mt-3"
               onSubmit={(event) => {
                 event.preventDefault()
-                if (!resolutionSummary.trim()) return
-                runAction(() => resolveTicket(token, ticket.id, resolutionSummary.trim())).then(() =>
-                  setResolutionSummary(''),
-                )
+                if (!resolutionSummary.trim() || !gate.allowed) return
+                void runAction(
+                  () => resolveTicket(token, ticket.id, resolutionSummary.trim(), ticket.version),
+                  'Status changed to Resolved',
+                ).then((ok) => {
+                  if (ok) setResolutionSummary('')
+                })
               }}
             >
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Resolution summary..."
-                value={resolutionSummary}
-                onChange={(event) => setResolutionSummary(event.target.value)}
-              />
-              <button type="submit" className="btn btn-success text-nowrap" disabled={!resolutionSummary.trim()}>
-                Resolve Ticket
-              </button>
+              <label className="form-label small text-muted" htmlFor="resolutionSummary">
+                Resolution Summary
+              </label>
+              <div className="d-flex flex-wrap flex-sm-nowrap gap-2">
+                <input
+                  id="resolutionSummary"
+                  type="text"
+                  className="form-control"
+                  placeholder="Resolution summary..."
+                  value={resolutionSummary}
+                  aria-describedby={gate.allowed ? undefined : 'resolutionGateHint'}
+                  onChange={(event) => setResolutionSummary(event.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="btn btn-success text-nowrap"
+                  disabled={isBusy || !resolutionSummary.trim() || !gate.allowed}
+                >
+                  Resolve Ticket
+                </button>
+              </div>
+              {!gate.allowed && (
+                <p className="small text-warning-emphasis mt-2 mb-0" id="resolutionGateHint">
+                  Can't resolve yet: {gate.reasons.join(' and ')}.{' '}
+                  <button type="button" className="btn btn-link btn-sm p-0 align-baseline" onClick={() => setTab('actions')}>
+                    Go to Actions Taken
+                  </button>
+                </p>
+              )}
             </form>
           )}
         </div>
@@ -460,6 +458,11 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                 onClick={() => setTab('attachments')}
               >
                 Attachments {ticket.attachments.length}
+              </button>
+            </li>
+            <li className="nav-item">
+              <button type="button" className={`nav-link ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
+                Status History
               </button>
             </li>
           </ul>
@@ -503,6 +506,33 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
             />
           )}
 
+          {tab === 'history' &&
+            (ticket.statusHistory.length === 0 ? (
+              <p className="text-muted text-center py-3 mb-0">No status history recorded before Lab 4.</p>
+            ) : (
+              <ol className="list-group list-group-flush list-group-numbered" aria-label="Status history, oldest first">
+                {ticket.statusHistory.map((change) => (
+                  <li key={change.id} className="list-group-item px-0 d-flex flex-wrap gap-2 align-items-center">
+                    {change.fromStatus ? (
+                      <>
+                        <StatusBadge status={change.fromStatus} />
+                        <span aria-label="to">→</span>
+                        <StatusBadge status={change.toStatus} />
+                      </>
+                    ) : (
+                      <>
+                        <span>Created as</span>
+                        <StatusBadge status={change.toStatus} />
+                      </>
+                    )}
+                    <span className="text-muted small">
+                      by {change.changedBy.fullName} · {formatDateTime(change.createdAt)}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ))}
+
           {tab === 'attachments' && (
             <>
               {(() => {
@@ -515,7 +545,8 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                     onSubmit={(event) => {
                       event.preventDefault()
                       if (!attachmentFile) return
-                      runAction(() => addAttachment(token, ticket.id, attachmentFile)).then(() => {
+                      void runAction(() => addAttachment(token, ticket.id, attachmentFile)).then((ok) => {
+                        if (!ok) return
                         setAttachmentFile(null)
                         setAttachmentError(null)
                       })
@@ -619,7 +650,8 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                           onSubmit={(event) => {
                             event.preventDefault()
                             if (!removalReason.trim()) return
-                            runAction(() => removeAttachment(token, attachment.id, removalReason.trim())).then(() => {
+                            void runAction(() => removeAttachment(token, attachment.id, removalReason.trim())).then((ok) => {
+                              if (!ok) return
                               setRemovingAttachmentId(null)
                               setRemovalReason('')
                             })
