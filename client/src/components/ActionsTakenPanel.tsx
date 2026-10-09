@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { AssignableOwner, TicketAction, TicketStatus } from '../api/tickets'
 import ActionStatusBadge from './ActionStatusBadge'
 import ActionForm from './ActionForm'
@@ -37,20 +37,31 @@ function ActionsTakenPanel({
   onChanged,
 }: ActionsTakenPanelProps) {
   const [mode, setMode] = useState<Mode>({ kind: 'list' })
-  const triggerRef = useRef<HTMLElement | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  // Which control opened the form: 'add' or the id of the action viewed.
+  const returnFocusTo = useRef<'add' | number | null>(null)
   const ticketLocked = LOCKED_TICKET_STATUSES.includes(ticketStatus)
   const canWrite = isStaff && !ticketLocked
 
-  const open = (next: Mode, trigger: HTMLElement) => {
-    triggerRef.current = trigger
+  const open = (next: Mode) => {
+    returnFocusTo.current = next.kind === 'create' ? 'add' : next.kind === 'view' ? next.actionId : null
     setMode(next)
   }
 
-  const close = () => {
-    setMode({ kind: 'list' })
-    // Return focus to the button that opened the form (ui-spec section 9).
-    requestAnimationFrame(() => triggerRef.current?.focus())
-  }
+  const close = () => setMode({ kind: 'list' })
+
+  // Return focus to the control that opened the form once the list is back
+  // (ui-spec section 9). The original element may have been unmounted while
+  // the form was open, so look it up again rather than keeping a reference;
+  // only the visible copy (table on desktop, card on mobile) can take focus.
+  useEffect(() => {
+    if (mode.kind !== 'list' || returnFocusTo.current === null) return
+    const target = returnFocusTo.current
+    returnFocusTo.current = null
+    const selector = target === 'add' ? '[data-focus-return="add"]' : `[data-focus-return="action-${target}"]`
+    const candidates = Array.from(containerRef.current?.querySelectorAll<HTMLElement>(selector) ?? [])
+    candidates.find((element) => element.offsetParent !== null)?.focus()
+  }, [mode, actions])
 
   const selected = mode.kind === 'view' ? actions.find((action) => action.id === mode.actionId) ?? null : null
 
@@ -58,7 +69,8 @@ function ActionsTakenPanel({
     <button
       type="button"
       className="btn btn-outline-primary btn-sm text-nowrap"
-      onClick={(event) => open({ kind: 'view', actionId: action.id }, event.currentTarget)}
+      data-focus-return={`action-${action.id}`}
+      onClick={() => open({ kind: 'view', actionId: action.id })}
       aria-label={`${canWrite && action.status !== 'COMPLETED' && action.status !== 'CANCELLED' ? 'View or edit' : 'View'} action: ${action.description}`}
     >
       {canWrite && action.status !== 'COMPLETED' && action.status !== 'CANCELLED' ? 'View / Edit' : 'View'}
@@ -66,7 +78,7 @@ function ActionsTakenPanel({
   )
 
   return (
-    <div>
+    <div ref={containerRef}>
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <p className="text-muted small mb-0">
           {ticketLocked
@@ -76,7 +88,7 @@ function ActionsTakenPanel({
               : 'The work IT Staff have planned and carried out on your ticket.'}
         </p>
         {canWrite && mode.kind === 'list' && (
-          <button type="button" className="btn btn-primary btn-sm" onClick={(event) => open({ kind: 'create' }, event.currentTarget)}>
+          <button type="button" className="btn btn-primary btn-sm" data-focus-return="add" onClick={() => open({ kind: 'create' })}>
             + Add Action
           </button>
         )}

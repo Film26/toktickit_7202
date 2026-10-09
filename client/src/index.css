@@ -143,3 +143,32 @@ body {
 .metric-card h2 {
   min-height: 2.6em;
 }
+
+/* Accessibility fixes from the Lab 4 axe audit (Issue #77, WCAG 1.4.3):
+   - the role label beside the user's name was white at 50% opacity on the
+     green bar (below 4.5:1); 85% keeps it secondary but readable.
+   - Bootstrap's amber outline button (Mark Waiting, Request Reopening) has
+     amber text on white at about 2:1; use a dark amber that passes, and keep
+     white text on the filled hover/active state. */
+.app-navbar .nav-role {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.btn-outline-warning {
+  --bs-btn-color: #7a4d00;
+  --bs-btn-border-color: #b37400;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #8a5a00;
+  --bs-btn-hover-border-color: #8a5a00;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #7a4d00;
+  --bs-btn-active-border-color: #7a4d00;
+}
+
+/* Bootstrap's grey outline button (pagination, Discard) is ~4.4:1 on the
+   Zen Green page background; one shade darker passes 4.5:1. */
+.btn-outline-secondary {
+  --bs-btn-color: #545b62;
+  --bs-btn-border-color: #6c757d;
+  --bs-btn-disabled-color: #545b62;
+}
