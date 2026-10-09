@@ -83,7 +83,7 @@ Roles: IT Staff, Administrator (Requester → `403`).
 | Field | Rule |
 |---|---|
 | `description` | required, trimmed 1–2000 |
-| `actionAt` | optional ISO datetime (default now); ≥ Ticket `createdAt`; ≤ now + 5 min unless `status = PLANNED` |
+| `actionAt` | optional ISO datetime (default now); ≥ the minute of Ticket `createdAt`; ≤ now + 5 min unless `status = PLANNED` |
 | `status` | optional, `PLANNED` (default) \| `IN_PROGRESS` \| `COMPLETED` |
 | `result` | ≤ 2000; required non-blank when `status = COMPLETED` |
 | `assigneeId` | optional int (default = caller); must be active `IT_STAFF`/`ADMINISTRATOR` |

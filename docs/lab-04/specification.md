@@ -136,7 +136,7 @@ Tags below: **[existing]** already works (regression only), **[changed]** extend
 | BR-07 | When Follow-Up Required is true, a non-blank Follow-Up Note is required. When it is false, any Follow-Up Note is cleared. | new |
 | BR-08 | Action Status is Planned, In Progress, Completed or Cancelled. Permitted moves: Planned → In Progress / Completed / Cancelled; In Progress → Completed / Cancelled. Completed and Cancelled are terminal and read-only (edits → `409`). A new action may start as Planned, In Progress or Completed. | new |
 | BR-09 | Completing an action requires a non-blank Result; `completedAt` is set by the server. `cancelledAt` is set on cancel. | new |
-| BR-10 | Action Date/Time is required (defaults to now), may not be earlier than the Ticket's creation time, and may not be more than 5 minutes in the future unless the status is Planned (planned work may be scheduled ahead). | new |
+| BR-10 | Action Date/Time is required (defaults to now), may not be earlier than the minute the Ticket was created (the picker has minute precision), and may not be more than 5 minutes in the future unless the status is Planned (planned work may be scheduled ahead). | new |
 | BR-11 | Actions Taken can only be created or edited while the Ticket is New, Open, In Progress, Waiting for Requester, or Reopened; Resolved, Closed and Cancelled Tickets are read-only for actions (`409`). | new |
 | BR-12 | Actions Taken are never deleted; a mistaken action is Cancelled. An edit must send the `version` it was based on; a mismatch returns `409 STALE_UPDATE` with the current action and changes nothing. | new |
 | BR-13 | A create that repeats an earlier `clientRequestId` for the same Ticket returns the original action (`200`) instead of creating a duplicate. | new |
