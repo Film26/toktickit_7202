@@ -227,7 +227,8 @@ Full detail in `docs/lab-04/ui-spec.md`.
 - **App shell** — Zen Green navbar with role links (FR-15), active-page underline +
   `aria-current`, user name/role and Log out on the right. The Lab 2 "Change Requester" navbar
   button is removed (the dev-only `/dev-requester-select` route stays reachable by URL for
-  development, but is no longer part of the product shell).
+  development, but is no longer part of the product shell). The Login page's link to it is shown only in development builds, and the
+  `/api/requesters` endpoints return `404` in production (Issue #79).
 - **Requester Dashboard** (`/dashboard`) — "Welcome, <first name>!" header, 5 metric cards with
   "View all", My Recent Tickets list, Needs your attention list, Quick Actions (Create Ticket, View
   My Tickets).

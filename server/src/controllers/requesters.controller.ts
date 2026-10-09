@@ -6,7 +6,14 @@ import { signToken } from '../lib/jwt'
 // Public (no auth) - backs the Development Requester Selector, which by
 // design runs before the user has signed in. Only exposes id/fullName/email
 // for active Requester accounts; never passwordHash or any other field.
+// Like dev-select below, it is disabled in production (Lab 4 hardening,
+// Issue #79): outside development it would let anyone list every
+// Requester's name and email without signing in.
 export const listActiveRequesters: RequestHandler = async (_req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).json({ error: 'Not found' })
+    return
+  }
   const requesters = await prisma.user.findMany({
     where: { role: 'REQUESTER', isActive: true },
     orderBy: { fullName: 'asc' },
