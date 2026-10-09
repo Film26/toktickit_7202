@@ -20,9 +20,10 @@ lab4-staging ← #71 docs/issue-64-lab-04-contract
                          ← #74 feat/issue-67-ticket-workflow
                              ← #75 feat/issue-68-dashboards
                                  ← #76 feat/issue-69-hardening
+                                     ← #81 #77 → #82 #78 → #83 #79 → #80 submission
 ```
 
-Merge in order #71 → #76. When a base PR merges into `lab4-staging`, GitHub retargets the next
+Merge in order #71 → #76, then #81 → #82 → #83 → the #80 PR. When a base PR merges into `lab4-staging`, GitHub retargets the next
 PR to `lab4-staging`, so every feature lands in `lab4-staging` through its own reviewed PR.
 Then the release PR `lab4-staging → main` (Issue #70).
 Kanban: https://github.com/users/Film26/projects/11
@@ -37,6 +38,10 @@ Kanban: https://github.com/users/Film26/projects/11
 | [#74](https://github.com/Film26/toktickit_7202/pull/74) | #67 | Ticket workflow: resolution gate, status history, stale-update conflicts | *(awaiting review)* | | | No |
 | [#75](https://github.com/Film26/toktickit_7202/pull/75) | #68 | Role dashboards with drill-down | *(awaiting review)* | | | No |
 | [#76](https://github.com/Film26/toktickit_7202/pull/76) | #69 | Final hardening: Lab 4 E2E, visual inspection, README | *(awaiting review)* | | | No |
+| [#81](https://github.com/Film26/toktickit_7202/pull/81) | #77 | Accessibility audit (axe-core) + contrast and focus fixes | *(awaiting review)* | | | No |
+| [#82](https://github.com/Film26/toktickit_7202/pull/82) | #78 | Migration rollback and recovery verification | *(awaiting review)* | | | No |
+| [#83](https://github.com/Film26/toktickit_7202/pull/83) | #79 | Remove temporary dev UI in production + regression sweep | *(awaiting review)* | | | No |
+| *(next)* | #80 | Lab 4 submission document | *(awaiting review)* | | | No |
 | *(release)* | #70 | `lab4-staging` → `main` | | | | |
 
 ## Suggested review focus (for the reviewer)

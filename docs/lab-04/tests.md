@@ -144,6 +144,7 @@ Lab 3 tests that resolved a Ticket without any Action Taken must first record a 
 
 | Date | Branch | Command | Result |
 |---|---|---|---|
+| 2026-10-09 | `docs/issue-80-submission` (complete Lab 4 code) | `server: npm test` · `client: npm test` · `e2e: npx playwright test` (API on `toktickit_test`) | **268/268 · 85/85 · 40/40 = 393/393 passed** — the final numbers quoted in `submission.md` |
 | 2026-10-09 | `feat/issue-79-cleanup-sweep` | `e2e: npx playwright test lab-04/regression-sweep` + `server: dev-tools-production.api.test.ts` | 4/4 + 3/3 passed. Found + fixed: `GET /api/requesters` listed every Requester's name/email without sign-in even in production; Login page showed the Lab 2 dev-selector link in production builds (bundle now contains 0 occurrences) |
 | 2026-10-09 | `feat/issue-78-migration-rollback` | `server: npx vitest run` | 27 files, **265/265 passed** (4 new in `migration-rollback.test.ts`; the rollback was executed for real in an isolated schema) |
 | 2026-10-09 | `feat/issue-77-accessibility` | `e2e: npx playwright test lab-04/accessibility` | First run: 5 screens with **serious colour-contrast** violations + keyboard focus lost after saving an action. After fixes: **6/6 passed, 0 violations of any impact** |
