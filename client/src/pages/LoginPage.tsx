@@ -86,10 +86,16 @@ function LoginPage() {
             </p>
           )}
 
-          <hr className="my-4" />
-          <p className="text-muted small mb-0 text-center">
-            Testing as a Requester? <Link to="/dev-requester-select">Use the Development Requester Selector</Link>.
-          </p>
+          {/* Lab 2 testing tool: shown only in development builds, never in
+              the production app (handout section 7, Issue #79). */}
+          {import.meta.env.DEV && (
+            <>
+              <hr className="my-4" />
+              <p className="text-muted small mb-0 text-center">
+                Testing as a Requester? <Link to="/dev-requester-select">Use the Development Requester Selector</Link>.
+              </p>
+            </>
+          )}
         </form>
       </div>
     </div>
