@@ -297,11 +297,16 @@ Indexes: `(ticketId, actionAt)`, `(assigneeId, status)`.
   `UPDATE "ActionTaken" SET status='COMPLETED', "actionAt"="createdAt", "assigneeId"="authorId",
   "completedAt"="updatedAt", result='Recorded before Lab 4 (no result captured).'`. Existing Users,
   Tickets, Attachments, Public Comments, Internal Notes are untouched.
-- Rollback/recovery: the migration is additive, so the documented recovery is (1) `pg_dump` before
-  `prisma migrate deploy` (README), and (2) a hand-written `down.sql` committed beside the migration
-  beside each migration that drops the new table, columns, indexes and enum — tested against the test DB in
-  `server/tests/lab-04/migration-seed.test.ts` by checking the backfill result, and manually once
-  (documented in `tests.md`).
+- Rollback/recovery (tested — Issue #78, `server/tests/lab-04/migration-rollback.test.ts`, MIG-03):
+  1. Before deploying, back up: `pg_dump -Fc toktickit > before-lab4.dump`.
+  2. To roll back, run the `down.sql` files newest first
+     (`20261007000000_lab4_ticket_workflow/down.sql`, then `20261006000000_lab4_actions_taken/down.sql`)
+     with `psql`, and delete those two rows from `"_prisma_migrations"`. Only Lab 4 columns,
+     the status-history table and the `ActionStatus` enum are removed; Lab 1–3 rows are untouched.
+  3. To recover, run `npx prisma migrate deploy` again — the migrations re-apply cleanly on the
+     rolled-back schema. For a failed deploy, restore the dump with `pg_restore --clean`.
+  The test replays exactly steps 2–3 on a throwaway schema with Lab 3-era data and checks every
+  Lab 1–3 row is identical before, during and after.
 
 ### 10.4 Seed
 
