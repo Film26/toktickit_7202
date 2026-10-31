@@ -95,3 +95,13 @@ body {
 .table {
   --bs-table-hover-bg: var(--zg-pale);
 }
+
+/* Long Action Taken text in the table is clamped to two lines; the full
+   text is always available in the View panel (docs/lab-04/ui-spec.md 6.1). */
+.text-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}

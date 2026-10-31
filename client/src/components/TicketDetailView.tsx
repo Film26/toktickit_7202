@@ -17,7 +17,6 @@ import {
   requestReopen,
   addComment,
   addNote,
-  addAction,
   addAttachment,
   downloadAttachment,
   removeAttachment,
@@ -35,6 +34,7 @@ import PriorityBadge from './PriorityBadge'
 import StatusBadge from './StatusBadge'
 import CommentList from './CommentList'
 import CommentForm from './CommentForm'
+import ActionsTakenPanel from './ActionsTakenPanel'
 
 const PRIORITY_OPTIONS: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
@@ -86,15 +86,22 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
   const isStaff = user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR'
   const isRequester = user?.role === 'REQUESTER'
 
-  const load = useCallback(() => {
-    if (!token || !Number.isInteger(ticketId)) return
-    setIsLoading(true)
-    setError(null)
-    fetchTicket(token, ticketId)
-      .then(setTicket)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Unable to load ticket.'))
-      .finally(() => setIsLoading(false))
-  }, [token, ticketId])
+  // `silent` refreshes after a change keep the page on screen (no spinner
+  // flash, scroll position and open tab kept) instead of a full reload.
+  const load = useCallback(
+    (silent = false) => {
+      if (!token || !Number.isInteger(ticketId)) return Promise.resolve()
+      if (!silent) setIsLoading(true)
+      setError(null)
+      return fetchTicket(token, ticketId)
+        .then(setTicket)
+        .catch((err) => setError(err instanceof ApiError ? err.message : 'Unable to load ticket.'))
+        .finally(() => {
+          if (!silent) setIsLoading(false)
+        })
+    },
+    [token, ticketId],
+  )
 
   useEffect(() => {
     load()
@@ -114,7 +121,7 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
       setActionError(null)
       try {
         await action()
-        load()
+        await load(true)
       } catch (err) {
         setActionError(err instanceof ApiError ? err.message : 'Action failed.')
       }
@@ -443,7 +450,7 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
             )}
             <li className="nav-item">
               <button type="button" className={`nav-link ${tab === 'actions' ? 'active' : ''}`} onClick={() => setTab('actions')}>
-                Service Actions {ticket.actionsTaken.length}
+                Actions Taken {ticket.actionsTaken.length}
               </button>
             </li>
             <li className="nav-item">
@@ -483,31 +490,17 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
             </div>
           )}
 
-          {tab === 'actions' && (
-            <>
-              {isStaff && (
-                <CommentForm
-                  placeholder="Describe the action taken..."
-                  buttonLabel="Add Action"
-                  onSubmit={(description) => runAction(() => addAction(token, ticket.id, { description }))}
-                />
-              )}
-              {ticket.actionsTaken.length === 0 ? (
-                <p className="text-muted text-center py-3">No actions recorded yet.</p>
-              ) : (
-                <ul className="list-group list-group-flush">
-                  {ticket.actionsTaken.map((action) => (
-                    <li className="list-group-item px-0" key={action.id}>
-                      <div className="d-flex justify-content-between">
-                        <span className="fw-semibold">{action.performedBy.fullName}</span>
-                        <span className="text-muted small">{formatDateTime(action.createdAt)}</span>
-                      </div>
-                      <p className="mb-0">{action.description}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
+          {tab === 'actions' && user && (
+            <ActionsTakenPanel
+              token={token}
+              ticketId={ticket.id}
+              ticketStatus={ticket.status}
+              actions={ticket.actionsTaken}
+              isStaff={isStaff}
+              currentUser={user}
+              assignableOwners={assignableOwners}
+              onChanged={() => void load(true)}
+            />
           )}
 
           {tab === 'attachments' && (

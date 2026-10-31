@@ -2,10 +2,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000
 
 export class ApiError extends Error {
   status: number
+  // Optional machine-readable details from the error body (Lab 4 api-spec
+  // "Conventions"): e.g. code STALE_UPDATE with `current`, or
+  // VALIDATION_ERROR with per-field messages in `fields`.
+  code?: string
+  fields?: Record<string, string>
+  body?: Record<string, unknown>
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, body?: Record<string, unknown>) {
     super(message)
     this.status = status
+    this.body = body
+    if (body && typeof body.code === 'string') this.code = body.code
+    if (body && isRecord(body.fields)) this.fields = body.fields as Record<string, string>
   }
 }
 
@@ -42,7 +51,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   if (!response.ok) {
     const message = isRecord(data) && typeof data.error === 'string' ? data.error : `Request failed with status ${response.status}`
-    throw new ApiError(response.status, message)
+    throw new ApiError(response.status, message, isRecord(data) ? data : undefined)
   }
 
   return data as T
