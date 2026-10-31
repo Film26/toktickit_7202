@@ -85,6 +85,8 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | A11Y-01 | Accessibility | AC-27, ui-spec §9 | axe-core WCAG 2.1 A/AA scan of every Lab 4 screen (3 dashboards, drill-down lists, Actions Taken list / create-with-errors / edit, Status History, Requester read-only view) | 0 serious/critical violations | e2e/lab-04/accessibility.spec.ts | Pass (#77) |
 | A11Y-02 | Accessibility | AC-28 | Same scan on Login and Create Ticket (Lab 1–3 regression) | 0 serious/critical violations | e2e/lab-04/accessibility.spec.ts | Pass (#77) |
 | A11Y-03 | Accessibility | ui-spec §9 | Keyboard-only: open tab, Add Action, fill, save; focus lands on the form heading and returns to + Add Action | Completed without a mouse | e2e/lab-04/accessibility.spec.ts | Pass (#77) |
+| REG-04 | Regression / UI | AC-28, handout 8.5 | Every route for Requester / IT Staff / Administrator + every link on each dashboard; Requester on staff routes | No console error, no failed API call, no Not Found page, no placeholder text; restricted routes go to Access Denied | e2e/lab-04/regression-sweep.spec.ts | Pass (#79) |
+| REG-05 | Security / regression | handout 8.5, BR-04 | Lab 2 dev-selector endpoints with `NODE_ENV=production`; still work in dev/test | `404`, no names/emails, no token; Lab 2 tests still pass | server/tests/lab-04/dev-tools-production.api.test.ts | Pass (#79) |
 | REG-01 | Regression | AC-28 | All Lab 1–3 + full-app server tests | pass | server/tests/{lab-01,lab-02,lab-03,full-app} | Pass (#69) |
 | REG-02 | Regression | AC-28 | All Lab 1–3 client tests | pass | client/tests/{lab-01,lab-02,lab-03,full-app} | Pass (#69) |
 | REG-03 | Regression | AC-28 | Lab 2 + Lab 3 E2E | pass | e2e/lab-02, e2e/lab-03 | Pass (#69) |
@@ -120,7 +122,7 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | AC-25 | UI-08, UI-09, E2E-03 |
 | AC-26 | UI-01, UI-02, UI-03, E2E-04, E2E-05 |
 | AC-27 | STYLE-01, A11Y-01 |
-| AC-28 | REG-01, REG-02, REG-03, A11Y-02 |
+| AC-28 | REG-01, REG-02, REG-03, REG-04, REG-05, A11Y-02 |
 | AC-29 | PERF-01 |
 
 ## 4. Intentional regression updates
@@ -142,6 +144,7 @@ Lab 3 tests that resolved a Ticket without any Action Taken must first record a 
 
 | Date | Branch | Command | Result |
 |---|---|---|---|
+| 2026-10-09 | `feat/issue-79-cleanup-sweep` | `e2e: npx playwright test lab-04/regression-sweep` + `server: dev-tools-production.api.test.ts` | 4/4 + 3/3 passed. Found + fixed: `GET /api/requesters` listed every Requester's name/email without sign-in even in production; Login page showed the Lab 2 dev-selector link in production builds (bundle now contains 0 occurrences) |
 | 2026-10-09 | `feat/issue-78-migration-rollback` | `server: npx vitest run` | 27 files, **265/265 passed** (4 new in `migration-rollback.test.ts`; the rollback was executed for real in an isolated schema) |
 | 2026-10-09 | `feat/issue-77-accessibility` | `e2e: npx playwright test lab-04/accessibility` | First run: 5 screens with **serious colour-contrast** violations + keyboard focus lost after saving an action. After fixes: **6/6 passed, 0 violations of any impact** |
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `server: npx vitest run` | 23 files, **225/225 passed** (181 Lab 1–3 + 44 Lab 4) |

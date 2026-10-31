@@ -126,8 +126,8 @@ All routes are mounted under `/api`. Routes other than `/health`, `/auth/login`,
 | GET | `/api/attachments/:id` | Get one attachment's metadata | Authenticated (owner or staff) |
 | GET | `/api/attachments/:id/download` | Download an attachment's file | Authenticated (owner or staff) |
 | DELETE | `/api/attachments/:id` | Soft-remove an attachment (reason required) | Authenticated (owner or staff) |
-| GET | `/api/requesters` | List active Requesters | Public (dev/test-only selector, see below) |
-| POST | `/api/requesters/dev-select` | Issue a session for a Requester without a password | Public (dev/test-only selector, see below) |
+| GET | `/api/requesters` | List active Requesters | Public in dev/test only — `404` in production (see below) |
+| POST | `/api/requesters/dev-select` | Issue a session for a Requester without a password | Public in dev/test only — `404` in production (see below) |
 
 ## Demo accounts (seed data)
 
@@ -147,8 +147,10 @@ local development, never real secrets — see `server/prisma/seed.ts` for the fu
 | `david.lee@toktickit.dev` | `DavidLee123!` | Requester | |
 | `inactive-requester@toktickit.dev` | `InactiveRequester123!` | Requester | deactivated |
 
-The Login screen also links to `/dev-requester-select`, a password-free Requester selector kept
-for local testing only (`POST /api/requesters/dev-select`) — see `docs/lab-02/specification.md`
+In development builds the Login screen also links to `/dev-requester-select`, a password-free
+Requester selector kept for local testing only (`POST /api/requesters/dev-select`). Production
+builds hide the link, and both `/api/requesters` endpoints return `404` when
+`NODE_ENV=production` — see `docs/lab-02/specification.md`
 §11 for why it's intentionally decoupled from the real login flow.
 
 ## Demo walkthrough (Lab 4)
