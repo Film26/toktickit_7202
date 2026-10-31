@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import request from 'supertest'
 import app from '../../src/app'
+import { recordCompletedAction } from '../helpers/recordCompletedAction'
 
 async function loginAs(email: string, password: string) {
   const response = await request(app).post('/api/auth/login').send({ email, password })
@@ -137,8 +138,15 @@ describe('ticket lifecycle', () => {
     const updatedAction = await request(app)
       .patch(`/api/tickets/${ticketId}/actions/${action.body.id}`)
       .set('Authorization', `Bearer ${itStaffToken}`)
-      // Lab 4 (BR-12): edits must send the version they were based on.
-      .send({ description: 'Restarted the service and confirmed fix', version: action.body.version })
+      // Lab 4 (BR-12): edits must send the version they were based on; the
+      // fix is confirmed, so the action is completed (otherwise it stays an
+      // open Planned action and blocks resolving this ticket -- BR-15).
+      .send({
+        description: 'Restarted the service and confirmed fix',
+        status: 'COMPLETED',
+        result: 'Service is back up',
+        version: action.body.version,
+      })
     expect(updatedAction.status).toBe(200)
   })
 
@@ -160,6 +168,7 @@ describe('ticket lifecycle', () => {
     expect(whileInProgress.status).toBe(200)
     expect(whileInProgress.body.requestedPriority).toBe('URGENT')
 
+    await recordCompletedAction(ticketId, itStaffToken)
     const resolve = await request(app)
       .post(`/api/tickets/${ticketId}/resolve`)
       .set('Authorization', `Bearer ${itStaffToken}`)
@@ -199,6 +208,7 @@ describe('ticket lifecycle', () => {
   })
 
   it('walks through resolve -> confirm -> closed', async () => {
+    await recordCompletedAction(ticketId, itStaffToken)
     const resolve = await request(app)
       .post(`/api/tickets/${ticketId}/resolve`)
       .set('Authorization', `Bearer ${itStaffToken}`)
@@ -226,6 +236,7 @@ describe('ticket lifecycle', () => {
       .patch(`/api/tickets/${ticketId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ status: 'IN_PROGRESS' })
+    await recordCompletedAction(ticketId, adminToken)
     await request(app)
       .post(`/api/tickets/${ticketId}/resolve`)
       .set('Authorization', `Bearer ${adminToken}`)

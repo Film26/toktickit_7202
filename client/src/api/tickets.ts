@@ -89,6 +89,7 @@ export type TicketDetail = {
   resolvedAt: string | null
   closedAt: string | null
   requesterAppearsResolvedAt: string | null
+  version: number
   requester: { id: number; fullName: string; email: string }
   owner: { id: number; fullName: string; email: string } | null
   category: { id: number; name: string }
@@ -97,6 +98,15 @@ export type TicketDetail = {
   internalNotes?: TicketComment[]
   actionsTaken: TicketAction[]
   attachments: TicketAttachment[]
+  statusHistory: StatusChange[]
+}
+
+export type StatusChange = {
+  id: number
+  fromStatus: TicketStatus | null
+  toStatus: TicketStatus
+  changedBy: Participant
+  createdAt: string
 }
 
 export type SortField =
@@ -183,40 +193,40 @@ export function updateRequesterAppearsResolved(token: string, id: number, appear
   })
 }
 
-export function updateTicketOwner(token: string, id: number, ownerId: number | null) {
-  return apiFetch<TicketDetail>(`/api/tickets/${id}/owner`, { method: 'PATCH', token, body: { ownerId } })
+export function updateTicketOwner(token: string, id: number, ownerId: number | null, version?: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/owner`, { method: 'PATCH', token, body: { ownerId, version } })
 }
 
-export function updateTicketItPriority(token: string, id: number, itPriority: Priority) {
-  return apiFetch<TicketDetail>(`/api/tickets/${id}/it-priority`, { method: 'PATCH', token, body: { itPriority } })
+export function updateTicketItPriority(token: string, id: number, itPriority: Priority, version?: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/it-priority`, { method: 'PATCH', token, body: { itPriority, version } })
 }
 
-export function updateTicketStatus(token: string, id: number, status: TicketStatus) {
-  return apiFetch<TicketDetail>(`/api/tickets/${id}/status`, { method: 'PATCH', token, body: { status } })
+export function updateTicketStatus(token: string, id: number, status: TicketStatus, version?: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/status`, { method: 'PATCH', token, body: { status, version } })
 }
 
-export function resolveTicket(token: string, id: number, resolutionSummary: string) {
-  return apiFetch<TicketDetail>(`/api/tickets/${id}/resolve`, { method: 'POST', token, body: { resolutionSummary } })
+export function resolveTicket(token: string, id: number, resolutionSummary: string, version?: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/resolve`, { method: 'POST', token, body: { resolutionSummary, version } })
 }
 
-export function cancelTicket(token: string, id: number) {
-  return apiFetch<TicketDetail>(`/api/tickets/${id}/cancel`, { method: 'POST', token })
+export function cancelTicket(token: string, id: number, version?: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/cancel`, { method: 'POST', token, body: { version } })
 }
 
-export function closeTicket(token: string, id: number) {
-  return apiFetch<TicketDetail>(`/api/tickets/${id}/close`, { method: 'POST', token })
+export function closeTicket(token: string, id: number, version?: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/close`, { method: 'POST', token, body: { version } })
 }
 
-export function confirmResolution(token: string, id: number) {
-  return apiFetch<TicketDetail>(`/api/tickets/${id}/confirm-resolution`, { method: 'POST', token })
+export function confirmResolution(token: string, id: number, version?: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/confirm-resolution`, { method: 'POST', token, body: { version } })
 }
 
-export function rejectResolution(token: string, id: number) {
-  return apiFetch<TicketDetail>(`/api/tickets/${id}/reject-resolution`, { method: 'POST', token })
+export function rejectResolution(token: string, id: number, version?: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/reject-resolution`, { method: 'POST', token, body: { version } })
 }
 
-export function requestReopen(token: string, id: number) {
-  return apiFetch<TicketDetail>(`/api/tickets/${id}/request-reopen`, { method: 'POST', token })
+export function requestReopen(token: string, id: number, version?: number) {
+  return apiFetch<TicketDetail>(`/api/tickets/${id}/request-reopen`, { method: 'POST', token, body: { version } })
 }
 
 export function addComment(token: string, id: number, body: string) {

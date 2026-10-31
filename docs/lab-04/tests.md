@@ -26,7 +26,7 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | UNIT-01 | Unit | BR-08 | Action status move table | Only Planned→IP/Completed/Cancelled, IP→Completed/Cancelled allowed | server/tests/lab-04/action-rules.unit.test.ts | Pass (#65) |
 | UNIT-02 | Unit | BR-07, BR-09, BR-10 | Merged action validation (follow-up note, result, date window) | Correct field errors | server/tests/lab-04/action-rules.unit.test.ts | Pass (#65) |
 | UNIT-03 | Unit | BR-22 | Bangkok `todayStart` at 23:30 and 00:30 local | Correct UTC boundary | server/tests/lab-04/action-rules.unit.test.ts | Planned |
-| UNIT-04 | Unit | BR-15 | Resolution-gate evaluator | Blocks with open / no completed actions | server/tests/lab-04/action-rules.unit.test.ts | Planned |
+| UNIT-04 | Unit | BR-15 | Resolution-gate evaluator | Blocks with open / no completed actions | server/tests/lab-04/action-rules.unit.test.ts | Pass (#67) |
 | API-01 | API | FR-02, AC-07 | List actions as staff / own Requester / other Requester | 200 ordered / 200 / 404 | server/tests/lab-04/actions-taken.api.test.ts | Pass (#65) |
 | API-02 | API | AC-07, BR-04 | Requester POST / PATCH action | 403 | server/tests/lab-04/actions-taken.api.test.ts | Pass (#65) |
 | API-03 | API | AC-01 | Create a valid Action Taken | 201 under the correct Ticket, performedBy = caller, assignee default caller | server/tests/lab-04/actions-taken.api.test.ts | Pass (#65) |
@@ -42,15 +42,15 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | API-13 | API | AC-23 | Create/edit on Resolved, Closed, Cancelled ticket | 409 TICKET_LOCKED | server/tests/lab-04/actions-taken.api.test.ts | Pass (#65) |
 | API-14 | API | BR-03 | Body tries to set performedBy/authorId | Ignored, performedBy = caller | server/tests/lab-04/actions-taken.api.test.ts | Pass (#65) |
 | API-15 | API | BR-25 | Administrator creates/edits action | 201/200 | server/tests/lab-04/actions-taken.api.test.ts | Pass (#65) |
-| WF-01 | Workflow | AC-10 | Resolve with no action / open action | 409 RESOLUTION_GATE, status unchanged | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| WF-02 | Workflow | AC-10 | Resolve with ≥1 completed + rest cancelled | 200 RESOLVED | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| WF-03 | Workflow | AC-11 | Requester appears-resolved + Requester POST resolve | status unchanged; 403 | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| WF-04 | Workflow | AC-12 | Full lifecycle New→Open→IP→Waiting→IP→Resolved→Closed→Reopened | one history row per step, in order, correct actor | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| WF-05 | Workflow | AC-13 | Stale ticket version on status / owner / it-priority | 409 STALE_UPDATE | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| WF-06 | Workflow | AC-13 | Two concurrent resolves | exactly one 200, one history row | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| WF-07 | Workflow | AC-14 | Every non-matrix transition (sampled table) | 409 | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| WF-08 | Workflow | AC-22 | Cancel ticket with planned action | ticket CANCELLED, action CANCELLED | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| WF-09 | Workflow | FR-09 | GET ticket includes ordered statusHistory + version for Requester and staff | present | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
+| WF-01 | Workflow | AC-10 | Resolve with no action / open action | 409 RESOLUTION_GATE, status unchanged | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
+| WF-02 | Workflow | AC-10 | Resolve with ≥1 completed + rest cancelled | 200 RESOLVED | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
+| WF-03 | Workflow | AC-11 | Requester appears-resolved + Requester POST resolve | status unchanged; 403 | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
+| WF-04 | Workflow | AC-12 | Full lifecycle New→Open→IP→Waiting→IP→Resolved→Closed→Reopened | one history row per step, in order, correct actor | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
+| WF-05 | Workflow | AC-13 | Stale ticket version on status / owner / it-priority | 409 STALE_UPDATE | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
+| WF-06 | Workflow | AC-13 | Two concurrent resolves | exactly one 200, one history row | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
+| WF-07 | Workflow | AC-14 | Every non-matrix transition (sampled table) | 409 | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
+| WF-08 | Workflow | AC-22 | Cancel ticket with planned action | ticket CANCELLED, action CANCELLED | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
+| WF-09 | Workflow | FR-09 | GET ticket includes ordered statusHistory + version for Requester and staff | present | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
 | DASH-01 | API | AC-02 | Requester dashboard only own tickets (compare two requesters to DB) | counts = DB counts for that requester | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
 | DASH-02 | API | AC-16 | Staff → requester dashboard; no token | 403; 401 | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
 | DASH-03 | API | AC-17 | Fresh Requester with no tickets | all 0, lists [] | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
@@ -71,8 +71,8 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | UI-05 | UI | AC-24 | Server 400/500 keeps entered values; Save disabled while saving | values retained | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
 | UI-06 | UI | AC-08 | 409 STALE_UPDATE shows ConflictAlert + Reload | shown | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
 | UI-07 | UI | AC-24 | Requester sees actions, no Add/Edit | hidden | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
-| UI-08 | UI | AC-25 | Buttons per status/role match matrix | exact set | client/tests/lab-04/TicketWorkflow.test.tsx | Planned |
-| UI-09 | UI | AC-25 | Resolve disabled with gate hint; success refreshes badge + history | correct | client/tests/lab-04/TicketWorkflow.test.tsx | Planned |
+| UI-08 | UI | AC-25 | Buttons per status/role match matrix | exact set | client/tests/lab-04/TicketWorkflow.test.tsx | Pass (#67) |
+| UI-09 | UI | AC-25 | Resolve disabled with gate hint; success refreshes badge + history | correct | client/tests/lab-04/TicketWorkflow.test.tsx | Pass (#67) |
 | UI-10 | UI | FR-14 | Queue / My Tickets read drill-down params into the API call | query forwarded | client/tests/lab-04/StaffDashboard.test.tsx | Planned |
 | UI-11 | UI | FR-15 | NavBar role links + aria-current | correct | client/tests/lab-04/StaffDashboard.test.tsx | Planned |
 | E2E-01 | E2E | AC-03 | Staff: add planned action assigned to another staff, edit, complete, resolve | list + status update | e2e/lab-04/actions-taken-flow.spec.ts | Planned |
@@ -127,6 +127,8 @@ Lab 3 tests that resolved a Ticket without any Action Taken must first record a 
 | Issue | File | Change | Reason |
 |---|---|---|---|
 | #65 | `server/tests/full-app/tickets.test.ts` | Action edit now sends `version` | BR-12: Action Taken edits require the last-seen version |
+| #67 | `server/tests/full-app/tickets.test.ts` (3 sites), `lab-03/requester-appears-resolved.api.test.ts` (2), `lab-03/staff-ticket-detail.api.test.ts` (2) | Call `tests/helpers/recordCompletedAction.ts` before resolving | BR-15 resolution gate: these 8 tests resolved tickets with no Completed action and failed with `409 RESOLUTION_GATE` — the intended new behavior |
+| #67 | `server/tests/full-app/tickets.test.ts` | The action-edit step also completes the action (`status: COMPLETED`, `result`) | Under Lab 4 a description-only action defaults to Planned (open work), which correctly blocked resolving the shared lifecycle ticket |
 
 ## 5. Results log
 
@@ -134,6 +136,9 @@ Lab 3 tests that resolved a Ticket without any Action Taken must first record a 
 |---|---|---|---|
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `server: npx vitest run` | 23 files, **225/225 passed** (181 Lab 1–3 + 44 Lab 4) |
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `client: npx vitest run` | 12 files, **45/45 passed** |
+| 2026-10-07 | `feat/issue-67-ticket-workflow` | `server: npx vitest run` | 24 files, **245/245 passed** (20 new in `ticket-workflow.api.test.ts`, incl. 3-way concurrent resolve → exactly one 200) |
+| 2026-10-07 | `feat/issue-67-ticket-workflow` | `client: npx vitest run` | 14 files, **70/70 passed** (16 new in `TicketWorkflow.test.tsx`) |
+| 2026-10-07 | `feat/issue-67-ticket-workflow` | Playwright smoke: staff on seeded ticket with open actions | Resolve disabled with "2 actions are still open"; Status History tab shows legacy empty state; 0 console errors |
 | 2026-10-07 | `feat/issue-66-actions-taken-ui` | `client: npx vitest run` | 13 files, **54/54 passed** (9 new in `ActionsTaken.test.tsx`) |
 | 2026-10-07 | `feat/issue-66-actions-taken-ui` | Manual Playwright smoke against real API (staff adds action at 1280 + 375 px) | Pass; 0 console errors, 0 px horizontal overflow. Found + fixed: line-clamp on `<td>` broke table column layout |
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `prisma migrate deploy` on dev + test DBs, row counts before/after | All 8 tables' counts identical; 6 legacy test-DB actions backfilled (0 violations) |

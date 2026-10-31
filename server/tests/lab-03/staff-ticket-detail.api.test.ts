@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import request from 'supertest'
 import app from '../../src/app'
+import { recordCompletedAction } from '../helpers/recordCompletedAction'
 
 // Covers Issue #42 (Ticket Status Workflow) against docs/lab-03/specification.md section 7
 // (transition matrix) and section 11 (Acceptance Criteria AC-09, AC-10, AC-11).
@@ -103,6 +104,7 @@ describe('ticket status workflow (Issue #42)', () => {
       .set('Authorization', `Bearer ${itStaffToken}`)
       .send({ status: 'WAITING_FOR_REQUESTER' })
 
+    await recordCompletedAction(ticket.id, itStaffToken)
     const resolve = await request(app)
       .post(`/api/tickets/${ticket.id}/resolve`)
       .set('Authorization', `Bearer ${itStaffToken}`)
@@ -117,6 +119,7 @@ describe('ticket status workflow (Issue #42)', () => {
       .patch(`/api/tickets/${ticket.id}/status`)
       .set('Authorization', `Bearer ${itStaffToken}`)
       .send({ status: 'IN_PROGRESS' })
+    await recordCompletedAction(ticket.id, itStaffToken)
     await request(app)
       .post(`/api/tickets/${ticket.id}/resolve`)
       .set('Authorization', `Bearer ${itStaffToken}`)

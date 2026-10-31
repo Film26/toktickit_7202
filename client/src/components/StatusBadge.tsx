@@ -1,4 +1,5 @@
 import type { TicketStatus } from '../api/tickets'
+import { STATUS_LABELS } from '../lib/ticketWorkflow'
 
 const STATUS_CLASSES: Record<TicketStatus, string> = {
   NEW: 'text-bg-primary',
@@ -9,17 +10,6 @@ const STATUS_CLASSES: Record<TicketStatus, string> = {
   CLOSED: 'text-bg-secondary',
   REOPENED: 'text-bg-warning',
   CANCELLED: 'text-bg-dark text-decoration-line-through',
-}
-
-const STATUS_LABELS: Record<TicketStatus, string> = {
-  NEW: 'New',
-  OPEN: 'Open',
-  IN_PROGRESS: 'In Progress',
-  WAITING_FOR_REQUESTER: 'Waiting for Requester',
-  RESOLVED: 'Resolved',
-  CLOSED: 'Closed',
-  REOPENED: 'Reopened',
-  CANCELLED: 'Cancelled',
 }
 
 function StatusBadge({ status }: { status: TicketStatus }) {

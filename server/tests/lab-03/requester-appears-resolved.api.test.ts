@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import request from 'supertest'
 import app from '../../src/app'
+import { recordCompletedAction } from '../helpers/recordCompletedAction'
 
 // Covers Issue #43 ("Problem Appears Resolved") against
 // docs/lab-03/specification.md BR-05 / FR-20 and AC-07 / AC-08.
@@ -78,6 +79,7 @@ describe('requester appears-resolved signal (Issue #43)', () => {
       .patch(`/api/tickets/${ticket.id}/status`)
       .set('Authorization', `Bearer ${itStaffToken}`)
       .send({ status: 'IN_PROGRESS' })
+    await recordCompletedAction(ticket.id, itStaffToken)
     await request(app)
       .post(`/api/tickets/${ticket.id}/resolve`)
       .set('Authorization', `Bearer ${itStaffToken}`)
@@ -96,6 +98,7 @@ describe('requester appears-resolved signal (Issue #43)', () => {
       .patch(`/api/tickets/${ticket.id}/status`)
       .set('Authorization', `Bearer ${itStaffToken}`)
       .send({ status: 'IN_PROGRESS' })
+    await recordCompletedAction(ticket.id, itStaffToken)
     await request(app)
       .post(`/api/tickets/${ticket.id}/resolve`)
       .set('Authorization', `Bearer ${itStaffToken}`)
