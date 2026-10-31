@@ -125,10 +125,19 @@ export type TicketQueueResult = { tickets: TicketSummary[]; pagination: Paginati
 
 export function fetchMyTickets(
   token: string,
-  params: { status?: TicketStatus; search?: string; sort?: SortField; order?: SortOrder; page?: number; pageSize?: number } = {},
+  params: {
+    status?: TicketStatus
+    statusGroup?: 'open'
+    search?: string
+    sort?: SortField
+    order?: SortOrder
+    page?: number
+    pageSize?: number
+  } = {},
 ) {
   const query = new URLSearchParams()
   if (params.status) query.set('status', params.status)
+  if (params.statusGroup) query.set('statusGroup', params.statusGroup)
   if (params.search) query.set('search', params.search)
   if (params.sort) query.set('sort', params.sort)
   if (params.order) query.set('order', params.order)
@@ -142,6 +151,8 @@ export function fetchAllTickets(
   token: string,
   params: {
     status?: TicketStatus
+    statusGroup?: 'open'
+    itPriority?: Priority | 'unset'
     ownerId?: string
     categoryId?: number
     q?: string
@@ -153,6 +164,8 @@ export function fetchAllTickets(
 ) {
   const query = new URLSearchParams()
   if (params.status) query.set('status', params.status)
+  if (params.statusGroup) query.set('statusGroup', params.statusGroup)
+  if (params.itPriority) query.set('itPriority', params.itPriority)
   if (params.ownerId) query.set('ownerId', params.ownerId)
   if (params.categoryId) query.set('categoryId', String(params.categoryId))
   if (params.q) query.set('q', params.q)

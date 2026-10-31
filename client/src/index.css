@@ -105,3 +105,41 @@ body {
   overflow: hidden;
   overflow-wrap: anywhere;
 }
+
+/* Lab 4 app shell (docs/lab-04/ui-spec.md section 1): the active page gets
+   bold text plus an underline -- a non-colour cue -- and every nav control a
+   clearly visible keyboard focus ring on the green bar. */
+.app-navbar .nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  border-bottom: 3px solid transparent;
+}
+.app-navbar .nav-link:hover {
+  color: #fff;
+}
+.app-navbar .nav-link.active {
+  color: #fff;
+  font-weight: 600;
+  border-bottom-color: #fff;
+}
+.app-navbar a:focus-visible,
+.app-navbar button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.app-navbar .brand-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* Dashboard quick-action tiles keep Zen Green outline styling but read as
+   tiles, not plain buttons. */
+.quick-action {
+  white-space: normal;
+}
+
+/* Reserve two lines for every metric label so values line up across a row
+   even when one label ("Waiting for Requester") wraps. */
+.metric-card h2 {
+  min-height: 2.6em;
+}

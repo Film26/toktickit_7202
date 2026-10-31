@@ -6,6 +6,7 @@ import {
   validateActionFields,
   type ActionFields,
 } from '../../src/lib/actionRules'
+import { bangkokDayStart } from '../../src/lib/dashboardTime'
 
 // UNIT-01, UNIT-02 (docs/lab-04/tests.md) -- pure Action Taken rules, no DB.
 
@@ -80,5 +81,15 @@ describe('UNIT-02 merged action validation (BR-06, BR-07, BR-09, BR-10)', () => 
     expect(normalized.description).toBe('Did it')
     expect(normalized.followUpNote).toBeNull()
     expect(normalized.attachmentNotes).toBeNull()
+  })
+})
+
+describe('UNIT-03 Bangkok day boundary (BR-22)', () => {
+  it('23:30 Bangkok on Oct 6 belongs to Oct 6 (starts 2026-10-05T17:00Z)', () => {
+    expect(bangkokDayStart(new Date('2026-10-06T16:30:00.000Z')).toISOString()).toBe('2026-10-05T17:00:00.000Z')
+  })
+
+  it('00:30 Bangkok on Oct 7 belongs to Oct 7 (starts 2026-10-06T17:00Z), although it is still Oct 6 in UTC', () => {
+    expect(bangkokDayStart(new Date('2026-10-06T17:30:00.000Z')).toISOString()).toBe('2026-10-06T17:00:00.000Z')
   })
 })

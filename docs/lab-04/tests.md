@@ -25,7 +25,7 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 |---|---|---|---|---|---|---|
 | UNIT-01 | Unit | BR-08 | Action status move table | Only Planned→IP/Completed/Cancelled, IP→Completed/Cancelled allowed | server/tests/lab-04/action-rules.unit.test.ts | Pass (#65) |
 | UNIT-02 | Unit | BR-07, BR-09, BR-10 | Merged action validation (follow-up note, result, date window) | Correct field errors | server/tests/lab-04/action-rules.unit.test.ts | Pass (#65) |
-| UNIT-03 | Unit | BR-22 | Bangkok `todayStart` at 23:30 and 00:30 local | Correct UTC boundary | server/tests/lab-04/action-rules.unit.test.ts | Planned |
+| UNIT-03 | Unit | BR-22 | Bangkok `todayStart` at 23:30 and 00:30 local | Correct UTC boundary | server/tests/lab-04/action-rules.unit.test.ts | Pass (#68) |
 | UNIT-04 | Unit | BR-15 | Resolution-gate evaluator | Blocks with open / no completed actions | server/tests/lab-04/action-rules.unit.test.ts | Pass (#67) |
 | API-01 | API | FR-02, AC-07 | List actions as staff / own Requester / other Requester | 200 ordered / 200 / 404 | server/tests/lab-04/actions-taken.api.test.ts | Pass (#65) |
 | API-02 | API | AC-07, BR-04 | Requester POST / PATCH action | 403 | server/tests/lab-04/actions-taken.api.test.ts | Pass (#65) |
@@ -51,30 +51,30 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | WF-07 | Workflow | AC-14 | Every non-matrix transition (sampled table) | 409 | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
 | WF-08 | Workflow | AC-22 | Cancel ticket with planned action | ticket CANCELLED, action CANCELLED | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
 | WF-09 | Workflow | FR-09 | GET ticket includes ordered statusHistory + version for Requester and staff | present | server/tests/lab-04/ticket-workflow.api.test.ts | Pass (#67) |
-| DASH-01 | API | AC-02 | Requester dashboard only own tickets (compare two requesters to DB) | counts = DB counts for that requester | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
-| DASH-02 | API | AC-16 | Staff → requester dashboard; no token | 403; 401 | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
-| DASH-03 | API | AC-17 | Fresh Requester with no tickets | all 0, lists [] | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
-| DASH-04 | API | AC-18 | Each requester metric's drill-down vs `/tickets/mine` totalCount | equal | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
-| DASH-05 | API | AC-15 | Staff metrics vs `prisma.ticket.count` | equal | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| DASH-06 | API | AC-15 | My Assigned / My Open Actions differ per staff user | per-user values | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| DASH-07 | API | AC-18 | Each staff metric + byItPriority drill-down vs `/tickets` totalCount | equal | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| DASH-08 | API | AC-19 | Admin userCounts vs DB; IT Staff null | equal / null | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| DASH-09 | API | AC-16 | Requester → staff dashboard | 403 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| DASH-10 | API | BR-22 | "+N today" counts a transition made in the test | delta ≥ 1 for that status | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| PERF-01 | Perf smoke | AC-29 | Both dashboards on seed data | < 1000 ms | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
+| DASH-01 | API | AC-02 | Requester dashboard only own tickets (compare two requesters to DB) | counts = DB counts for that requester | server/tests/lab-04/requester-dashboard.api.test.ts | Pass (#68) |
+| DASH-02 | API | AC-16 | Staff → requester dashboard; no token | 403; 401 | server/tests/lab-04/requester-dashboard.api.test.ts | Pass (#68) |
+| DASH-03 | API | AC-17 | Fresh Requester with no tickets | all 0, lists [] | server/tests/lab-04/requester-dashboard.api.test.ts | Pass (#68) |
+| DASH-04 | API | AC-18 | Each requester metric's drill-down vs `/tickets/mine` totalCount | equal | server/tests/lab-04/requester-dashboard.api.test.ts | Pass (#68) |
+| DASH-05 | API | AC-15 | Staff metrics vs `prisma.ticket.count` | equal | server/tests/lab-04/staff-dashboard.api.test.ts | Pass (#68) |
+| DASH-06 | API | AC-15 | My Assigned / My Open Actions differ per staff user | per-user values | server/tests/lab-04/staff-dashboard.api.test.ts | Pass (#68) |
+| DASH-07 | API | AC-18 | Each staff metric + byItPriority drill-down vs `/tickets` totalCount | equal | server/tests/lab-04/staff-dashboard.api.test.ts | Pass (#68) |
+| DASH-08 | API | AC-19 | Admin userCounts vs DB; IT Staff null | equal / null | server/tests/lab-04/staff-dashboard.api.test.ts | Pass (#68) |
+| DASH-09 | API | AC-16 | Requester → staff dashboard | 403 | server/tests/lab-04/staff-dashboard.api.test.ts | Pass (#68) |
+| DASH-10 | API | BR-22 | "+N today" counts a transition made in the test | delta ≥ 1 for that status | server/tests/lab-04/staff-dashboard.api.test.ts | Pass (#68) |
+| PERF-01 | Perf smoke | AC-29 | Both dashboards on seed data | < 1000 ms | server/tests/lab-04/staff-dashboard.api.test.ts | Pass (#68) |
 | MIG-01 | Migration | AC-21, BR-24 | Legacy-style action backfill semantics; all Lab 3 tables still queryable | as specified | server/tests/lab-04/migration-seed.test.ts | Pass (#65) |
 | MIG-02 | Seed | AC-21 | Seed twice → no duplicate actions/tickets; 0 / 1 / many actions exist; all 8 statuses | pass | server/tests/lab-04/migration-seed.test.ts | Pass (#65) |
-| UI-01 | UI | AC-26 | Staff Dashboard renders cards, deltas, lists, drill-down hrefs | correct | client/tests/lab-04/StaffDashboard.test.tsx | Planned |
-| UI-02 | UI | AC-26 | Staff Dashboard loading / error+Retry / empty / Admin user card | correct | client/tests/lab-04/StaffDashboard.test.tsx | Planned |
-| UI-03 | UI | AC-26 | Requester Dashboard cards, attention list, empty state, error | correct | client/tests/lab-04/RequesterDashboard.test.tsx | Planned |
+| UI-01 | UI | AC-26 | Staff Dashboard renders cards, deltas, lists, drill-down hrefs | correct | client/tests/lab-04/StaffDashboard.test.tsx | Pass (#68) |
+| UI-02 | UI | AC-26 | Staff Dashboard loading / error+Retry / empty / Admin user card | correct | client/tests/lab-04/StaffDashboard.test.tsx | Pass (#68) |
+| UI-03 | UI | AC-26 | Requester Dashboard cards, attention list, empty state, error | correct | client/tests/lab-04/RequesterDashboard.test.tsx | Pass (#68) |
 | UI-04 | UI | AC-24 | Actions Taken list + Add form inline validation (follow-up note, result) | errors under fields, no request sent | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
 | UI-05 | UI | AC-24 | Server 400/500 keeps entered values; Save disabled while saving | values retained | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
 | UI-06 | UI | AC-08 | 409 STALE_UPDATE shows ConflictAlert + Reload | shown | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
 | UI-07 | UI | AC-24 | Requester sees actions, no Add/Edit | hidden | client/tests/lab-04/ActionsTaken.test.tsx | Pass (#66) |
 | UI-08 | UI | AC-25 | Buttons per status/role match matrix | exact set | client/tests/lab-04/TicketWorkflow.test.tsx | Pass (#67) |
 | UI-09 | UI | AC-25 | Resolve disabled with gate hint; success refreshes badge + history | correct | client/tests/lab-04/TicketWorkflow.test.tsx | Pass (#67) |
-| UI-10 | UI | FR-14 | Queue / My Tickets read drill-down params into the API call | query forwarded | client/tests/lab-04/StaffDashboard.test.tsx | Planned |
-| UI-11 | UI | FR-15 | NavBar role links + aria-current | correct | client/tests/lab-04/StaffDashboard.test.tsx | Planned |
+| UI-10 | UI | FR-14 | Queue / My Tickets read drill-down params into the API call | query forwarded | client/tests/lab-04/StaffDashboard.test.tsx | Pass (#68) |
+| UI-11 | UI | FR-15 | NavBar role links + aria-current | correct | client/tests/lab-04/StaffDashboard.test.tsx | Pass (#68) |
 | E2E-01 | E2E | AC-03 | Staff: add planned action assigned to another staff, edit, complete, resolve | list + status update | e2e/lab-04/actions-taken-flow.spec.ts | Planned |
 | E2E-02 | E2E | AC-07, AC-24 | Requester sees the actions read-only | no Add/Edit | e2e/lab-04/actions-taken-flow.spec.ts | Planned |
 | E2E-03 | E2E | AC-10, AC-25 | Resolve blocked by open action, then allowed; Requester confirms → Closed | pass | e2e/lab-04/ticket-resolution.spec.ts | Planned |
@@ -128,6 +128,10 @@ Lab 3 tests that resolved a Ticket without any Action Taken must first record a 
 |---|---|---|---|
 | #65 | `server/tests/full-app/tickets.test.ts` | Action edit now sends `version` | BR-12: Action Taken edits require the last-seen version |
 | #67 | `server/tests/full-app/tickets.test.ts` (3 sites), `lab-03/requester-appears-resolved.api.test.ts` (2), `lab-03/staff-ticket-detail.api.test.ts` (2) | Call `tests/helpers/recordCompletedAction.ts` before resolving | BR-15 resolution gate: these 8 tests resolved tickets with no Completed action and failed with `409 RESOLUTION_GATE` — the intended new behavior |
+| #68 | `client/tests/{lab-02/MyTickets,lab-03/StaffTicketQueue,full-app/pages}.test.tsx` | Import `MyTicketsPage` / `TicketQueuePage` (renamed files) | The list pages moved from `/dashboard` to `/tickets` and `/queue`; `/dashboard` is now the metric dashboard (FR-12..FR-14). Assertions unchanged |
+| #68 | `e2e/lab-02/requester-ticket-flow.spec.ts`, `e2e/lab-03/{authentication,staff-ticket-flow,visual-inspection}.spec.ts` | After login, expect the dashboard greeting and open My Tickets / Ticket Queue via the nav | Same route move; the list-behaviour assertions are unchanged |
+| #68 | `e2e/lab-03/staff-ticket-flow.spec.ts` | `getByText('Waiting for Requester', { exact: true })` | The new aria-live "Status changed to Waiting for Requester" announcement also matched the loose locator |
+| #68 | `server/vitest.config.mts` | `fileParallelism: false` | All API test files share one DB; parallel files made "dashboard value == DB count" checks race other files' inserts (each dashboard file passed alone) |
 | #67 | `server/tests/full-app/tickets.test.ts` | The action-edit step also completes the action (`status: COMPLETED`, `result`) | Under Lab 4 a description-only action defaults to Planned (open work), which correctly blocked resolving the shared lifecycle ticket |
 
 ## 5. Results log
@@ -136,6 +140,10 @@ Lab 3 tests that resolved a Ticket without any Action Taken must first record a 
 |---|---|---|---|
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `server: npx vitest run` | 23 files, **225/225 passed** (181 Lab 1–3 + 44 Lab 4) |
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `client: npx vitest run` | 12 files, **45/45 passed** |
+| 2026-10-07 | `feat/issue-68-dashboards` | `server: npx vitest run` (sequential files) | 26 files, **260/260 passed** in 36 s |
+| 2026-10-07 | `feat/issue-68-dashboards` | `client: npx vitest run` | 16 files, **85/85 passed** |
+| 2026-10-07 | `feat/issue-68-dashboards` | `e2e: npx playwright test` (Lab 2 + Lab 3), API on `toktickit_test` | **17/17 passed**. Note: on the dev DB the `admin@toktickit.dev` password was changed on 2026-09-19, so admin E2E steps must run against a DB with seed passwords |
+| 2026-10-07 | `feat/issue-68-dashboards` | Playwright screenshots of all 3 role dashboards, 1280 + 375 px | 0 console errors, 0 px horizontal overflow |
 | 2026-10-07 | `feat/issue-67-ticket-workflow` | `server: npx vitest run` | 24 files, **245/245 passed** (20 new in `ticket-workflow.api.test.ts`, incl. 3-way concurrent resolve → exactly one 200) |
 | 2026-10-07 | `feat/issue-67-ticket-workflow` | `client: npx vitest run` | 14 files, **70/70 passed** (16 new in `TicketWorkflow.test.tsx`) |
 | 2026-10-07 | `feat/issue-67-ticket-workflow` | Playwright smoke: staff on seeded ticket with open actions | Resolve disabled with "2 actions are still open"; Status History tab shows legacy empty state; 0 console errors |

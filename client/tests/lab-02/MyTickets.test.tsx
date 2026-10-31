@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../../src/auth/AuthContext'
-import RequesterDashboardPage from '../../src/pages/RequesterDashboardPage'
+import MyTicketsPage from '../../src/pages/MyTicketsPage'
 
 const REQUESTER = {
   id: 3,
@@ -40,13 +40,13 @@ function renderPage() {
   return render(
     <MemoryRouter>
       <AuthProvider>
-        <RequesterDashboardPage />
+        <MyTicketsPage />
       </AuthProvider>
     </MemoryRouter>,
   )
 }
 
-describe('RequesterDashboardPage / My Tickets (Lab 2)', () => {
+describe('MyTicketsPage / My Tickets (Lab 2)', () => {
   beforeEach(() => {
     localStorage.setItem('toktickit.token', 'fake-token')
   })

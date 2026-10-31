@@ -25,8 +25,9 @@ test('Requester ticket lifecycle: dev-select -> create -> my tickets -> detail -
     await expect(page.locator('input[type="password"]')).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Continue' }).click()
+    // Lab 4: /dashboard is now the Requester Dashboard; My Tickets moved to /tickets.
     await expect(page).toHaveURL(/\/dashboard$/)
-    await expect(page.getByRole('heading', { name: 'My Tickets' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Welcome, Rachel!' })).toBeVisible()
   })
 
   await test.step('Create Ticket: fill the full Requester-facing form and submit', async () => {
@@ -50,8 +51,8 @@ test('Requester ticket lifecycle: dev-select -> create -> my tickets -> detail -
   })
 
   await test.step('My Tickets: the just-created ticket appears when searched for', async () => {
-    await page.getByRole('link', { name: 'TokTickIT' }).click()
-    await expect(page).toHaveURL(/\/dashboard$/)
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'My Tickets' }).click()
+    await expect(page).toHaveURL(/\/tickets$/)
 
     await page.getByLabel('Search tickets').fill(marker)
     // TicketTable renders each <tr role="button" ...>, which overrides the

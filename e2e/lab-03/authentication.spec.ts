@@ -15,7 +15,8 @@ test('Login: valid credentials reach the dashboard', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign in' }).click()
 
   await expect(page).toHaveURL(/\/dashboard$/)
-  await expect(page.getByRole('heading', { name: 'All Tickets' })).toBeVisible()
+  // Lab 4: IT Staff land on the IT Staff Dashboard (the queue moved to /queue).
+  await expect(page.getByRole('heading', { name: 'Welcome back, Ivy!' })).toBeVisible()
 })
 
 test('Login: wrong password is rejected with a generic error', async ({ page }) => {

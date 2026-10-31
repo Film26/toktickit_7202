@@ -76,15 +76,15 @@ test.describe('IT Staff Ticket Queue', () => {
   test('queue with data', async ({ page, request }) => {
     const token = await apiLogin(request, 'itstaff@toktickit.dev', 'ItStaff123!')
     await applySession(page, token)
-    await page.goto('/dashboard')
-    await expect(page.getByRole('heading', { name: 'All Tickets' })).toBeVisible()
+    await page.goto('/queue') // Lab 4: queue moved from /dashboard
+    await expect(page.getByRole('heading', { name: 'Ticket Queue' })).toBeVisible()
     await shootAllViewports(page, 'staff-queue', 'queue')
   })
 
   test('queue - no-results state (active filter, zero matches)', async ({ page, request }) => {
     const token = await apiLogin(request, 'itstaff@toktickit.dev', 'ItStaff123!')
     await applySession(page, token)
-    await page.goto('/dashboard')
+    await page.goto('/queue')
     await page.getByLabel('Search tickets').fill(`no-such-ticket-${Date.now()}`)
     await expect(page.getByText('No tickets match your filters.')).toBeVisible()
     await shootAllViewports(page, 'staff-queue', 'queue-no-results')
