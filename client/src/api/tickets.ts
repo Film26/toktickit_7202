@@ -28,7 +28,36 @@ export type TicketSummary = {
 
 export type Participant = { id: number; fullName: string; role: Role }
 export type TicketComment = { id: number; body: string; createdAt: string; author: Participant }
-export type TicketAction = { id: number; description: string; createdAt: string; updatedAt: string; author: Participant }
+export type ActionStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+export type TicketAction = {
+  id: number
+  ticketId: number
+  actionAt: string
+  description: string
+  result: string | null
+  status: ActionStatus
+  followUpRequired: boolean
+  followUpNote: string | null
+  attachmentNotes: string | null
+  performedBy: Participant
+  assignee: Participant | null
+  version: number
+  createdAt: string
+  updatedAt: string
+  completedAt: string | null
+  cancelledAt: string | null
+}
+
+export type ActionInput = {
+  actionAt?: string
+  description?: string
+  result?: string | null
+  status?: ActionStatus
+  assigneeId?: number
+  followUpRequired?: boolean
+  followUpNote?: string | null
+  attachmentNotes?: string | null
+}
 export type TicketAttachment = {
   id: number
   filename: string
@@ -198,12 +227,16 @@ export function addNote(token: string, id: number, body: string) {
   return apiFetch<TicketComment>(`/api/tickets/${id}/notes`, { method: 'POST', token, body: { body } })
 }
 
-export function addAction(token: string, id: number, description: string) {
-  return apiFetch<TicketAction>(`/api/tickets/${id}/actions`, { method: 'POST', token, body: { description } })
+export function fetchActions(token: string, id: number) {
+  return apiFetch<TicketAction[]>(`/api/tickets/${id}/actions`, { token })
 }
 
-export function updateAction(token: string, id: number, actionId: number, description: string) {
-  return apiFetch<TicketAction>(`/api/tickets/${id}/actions/${actionId}`, { method: 'PATCH', token, body: { description } })
+export function addAction(token: string, id: number, data: ActionInput & { description: string; clientRequestId?: string }) {
+  return apiFetch<TicketAction>(`/api/tickets/${id}/actions`, { method: 'POST', token, body: data })
+}
+
+export function updateAction(token: string, id: number, actionId: number, data: ActionInput & { version: number }) {
+  return apiFetch<TicketAction>(`/api/tickets/${id}/actions/${actionId}`, { method: 'PATCH', token, body: data })
 }
 
 export function addAttachment(token: string, id: number, file: File) {

@@ -539,47 +539,6 @@ export const addNote: RequestHandler = async (req, res) => {
   }
 }
 
-const descriptionSchema = z.object({ description: z.string().min(1) })
-
-export const addAction: RequestHandler = async (req, res) => {
-  const ticketId = parseId(req.params.id)
-  const parsed = descriptionSchema.safeParse(req.body)
-  if (ticketId === null || !parsed.success) {
-    res.status(400).json({ error: 'description is required' })
-    return
-  }
-
-  try {
-    const action = await prisma.actionTaken.create({
-      data: { ticketId, authorId: req.user!.id, description: parsed.data.description },
-      include: { author: { select: { id: true, fullName: true, role: true } } },
-    })
-    res.status(201).json(action)
-  } catch {
-    res.status(404).json({ error: 'Ticket not found' })
-  }
-}
-
-export const updateAction: RequestHandler = async (req, res) => {
-  const actionId = parseId(req.params.actionId)
-  const parsed = descriptionSchema.safeParse(req.body)
-  if (actionId === null || !parsed.success) {
-    res.status(400).json({ error: 'description is required' })
-    return
-  }
-
-  try {
-    const action = await prisma.actionTaken.update({
-      where: { id: actionId },
-      data: { description: parsed.data.description },
-      include: { author: { select: { id: true, fullName: true, role: true } } },
-    })
-    res.status(200).json(action)
-  } catch {
-    res.status(404).json({ error: 'Action not found' })
-  }
-}
-
 export const addAttachment: RequestHandler = async (req, res) => {
   const ticketId = parseId(req.params.id)
   if (ticketId === null) {

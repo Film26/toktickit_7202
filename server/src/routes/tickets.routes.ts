@@ -4,6 +4,7 @@ import { requireRole } from '../middleware/requireRole'
 import enforcePasswordChange from '../middleware/enforcePasswordChange'
 import uploadSingleAttachment from '../middleware/uploadAttachment'
 import * as tickets from '../controllers/tickets.controller'
+import * as actions from '../controllers/actions.controller'
 
 const router = Router()
 const staffRoles = ['IT_STAFF', 'ADMINISTRATOR'] as const
@@ -29,8 +30,9 @@ router.post('/:id/resolve', requireRole(...staffRoles), tickets.resolveTicket)
 router.post('/:id/close', requireRole(...staffRoles), tickets.closeTicket)
 router.post('/:id/cancel', requireRole(...staffRoles), tickets.cancelTicket)
 router.post('/:id/notes', requireRole(...staffRoles), tickets.addNote)
-router.post('/:id/actions', requireRole(...staffRoles), tickets.addAction)
-router.patch('/:id/actions/:actionId', requireRole(...staffRoles), tickets.updateAction)
+router.get('/:id/actions', actions.listActions)
+router.post('/:id/actions', requireRole(...staffRoles), actions.createAction)
+router.patch('/:id/actions/:actionId', requireRole(...staffRoles), actions.updateAction)
 
 router.post('/:id/comments', tickets.addComment)
 router.post('/:id/attachments', uploadSingleAttachment, tickets.addAttachment)

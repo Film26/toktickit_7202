@@ -489,7 +489,7 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                 <CommentForm
                   placeholder="Describe the action taken..."
                   buttonLabel="Add Action"
-                  onSubmit={(description) => runAction(() => addAction(token, ticket.id, description))}
+                  onSubmit={(description) => runAction(() => addAction(token, ticket.id, { description }))}
                 />
               )}
               {ticket.actionsTaken.length === 0 ? (
@@ -499,7 +499,7 @@ function TicketDetailView({ backTo, backLabel }: TicketDetailViewProps) {
                   {ticket.actionsTaken.map((action) => (
                     <li className="list-group-item px-0" key={action.id}>
                       <div className="d-flex justify-content-between">
-                        <span className="fw-semibold">{action.author.fullName}</span>
+                        <span className="fw-semibold">{action.performedBy.fullName}</span>
                         <span className="text-muted small">{formatDateTime(action.createdAt)}</span>
                       </div>
                       <p className="mb-0">{action.description}</p>

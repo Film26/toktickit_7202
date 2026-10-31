@@ -1,5 +1,6 @@
 import prisma from '../db'
 import type { AuthenticatedUser } from '../middleware/requireAuth'
+import { ACTION_INCLUDE, serializeAction } from './actionSerializer'
 
 const PARTICIPANT_SELECT = { id: true, fullName: true, role: true } as const
 
@@ -13,7 +14,7 @@ export async function loadTicketForUser(ticketId: number, user: AuthenticatedUse
       relatedSystem: { select: { id: true, name: true } },
       publicComments: { include: { author: { select: PARTICIPANT_SELECT } }, orderBy: { createdAt: 'asc' } },
       internalNotes: { include: { author: { select: PARTICIPANT_SELECT } }, orderBy: { createdAt: 'asc' } },
-      actionsTaken: { include: { author: { select: PARTICIPANT_SELECT } }, orderBy: { createdAt: 'asc' } },
+      actionsTaken: { include: ACTION_INCLUDE, orderBy: [{ actionAt: 'asc' }, { id: 'asc' }] },
       attachments: {
         include: { uploader: { select: PARTICIPANT_SELECT }, removedBy: { select: PARTICIPANT_SELECT } },
         orderBy: { createdAt: 'asc' },
@@ -31,11 +32,13 @@ export function serializeTicket(
   ticket: NonNullable<Awaited<ReturnType<typeof loadTicketForUser>>>,
   viewerRole: AuthenticatedUser['role'],
 ) {
+  // Requesters see every Action Taken (handout 8.3) but never Internal Notes.
+  const withActions = { ...ticket, actionsTaken: ticket.actionsTaken.map(serializeAction) }
   if (viewerRole === 'REQUESTER') {
-    const { internalNotes: _internalNotes, ...rest } = ticket
+    const { internalNotes: _internalNotes, ...rest } = withActions
     return rest
   }
-  return ticket
+  return withActions
 }
 
 export async function userCanAccessTicket(ticketId: number, user: AuthenticatedUser): Promise<boolean> {
