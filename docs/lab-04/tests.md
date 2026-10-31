@@ -64,6 +64,7 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | PERF-01 | Perf smoke | AC-29 | Both dashboards on seed data | < 1000 ms | server/tests/lab-04/staff-dashboard.api.test.ts | Pass (#68) |
 | MIG-01 | Migration | AC-21, BR-24 | Legacy-style action backfill semantics; all Lab 3 tables still queryable | as specified | server/tests/lab-04/migration-seed.test.ts | Pass (#65) |
 | MIG-02 | Seed | AC-21 | Seed twice → no duplicate actions/tickets; 0 / 1 / many actions exist; all 8 statuses | pass | server/tests/lab-04/migration-seed.test.ts | Pass (#65) |
+| MIG-03 | Migration | handout 5.2, spec §10.3 | Lab 1–3 migrations + Lab 3-era data → Lab 4 migrations → both `down.sql` → re-apply, in an isolated schema | Backfill correct; rollback removes only Lab 4 objects; Lab 1–3 data identical at every step; re-apply clean | server/tests/lab-04/migration-rollback.test.ts | Pass (#78) |
 | UI-01 | UI | AC-26 | Staff Dashboard renders cards, deltas, lists, drill-down hrefs | correct | client/tests/lab-04/StaffDashboard.test.tsx | Pass (#68) |
 | UI-02 | UI | AC-26 | Staff Dashboard loading / error+Retry / empty / Admin user card | correct | client/tests/lab-04/StaffDashboard.test.tsx | Pass (#68) |
 | UI-03 | UI | AC-26 | Requester Dashboard cards, attention list, empty state, error | correct | client/tests/lab-04/RequesterDashboard.test.tsx | Pass (#68) |
@@ -112,7 +113,7 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | AC-18 | DASH-04, DASH-07, E2E-04 |
 | AC-19 | DASH-08, UI-02 |
 | AC-20 | API-12 |
-| AC-21 | MIG-01, MIG-02 |
+| AC-21 | MIG-01, MIG-02, MIG-03 |
 | AC-22 | WF-08 |
 | AC-23 | API-13 |
 | AC-24 | UI-04, UI-05, UI-07 |
@@ -141,6 +142,7 @@ Lab 3 tests that resolved a Ticket without any Action Taken must first record a 
 
 | Date | Branch | Command | Result |
 |---|---|---|---|
+| 2026-10-09 | `feat/issue-78-migration-rollback` | `server: npx vitest run` | 27 files, **265/265 passed** (4 new in `migration-rollback.test.ts`; the rollback was executed for real in an isolated schema) |
 | 2026-10-09 | `feat/issue-77-accessibility` | `e2e: npx playwright test lab-04/accessibility` | First run: 5 screens with **serious colour-contrast** violations + keyboard focus lost after saving an action. After fixes: **6/6 passed, 0 violations of any impact** |
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `server: npx vitest run` | 23 files, **225/225 passed** (181 Lab 1–3 + 44 Lab 4) |
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `client: npx vitest run` | 12 files, **45/45 passed** |

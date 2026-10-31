@@ -46,7 +46,9 @@ npm run dev             # starts the API on http://localhost:4000
 
 **Before migrating a database that holds data you care about**, back it up
 (`pg_dump -Fc toktickit > backup.dump`). Lab 4 migrations are additive; each has a manual
-rollback script next to it (`server/prisma/migrations/2026100*/down.sql`).
+rollback script next to it (`server/prisma/migrations/2026100*/down.sql`) — run them newest first,
+delete the two Lab 4 rows from `_prisma_migrations`, and `prisma migrate deploy` re-applies them
+(procedure in `docs/lab-04/specification.md` §10.3, verified by `tests/lab-04/migration-rollback.test.ts`).
 
 Backend scripts:
 
