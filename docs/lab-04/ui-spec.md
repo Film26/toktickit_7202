@@ -182,6 +182,12 @@ DB). "Auto" = asserted by a test on every run; "Visual" = checked by reviewing t
 
 Issues found and fixed during this pass:
 
+- **Accessibility audit (Issue #77, axe-core WCAG 2.1 A/AA):** navbar role label (white 50 % on
+  green), amber outline buttons (*Mark Waiting*, *Request Reopening*, ~2:1) and grey outline
+  buttons on the page background (~4.4:1) failed colour contrast — all three restyled to pass
+  4.5:1. Keyboard focus was lost after saving an action (the opening button had been unmounted);
+  it now returns to *+ Add Action* / the action's *View / Edit* button.
+
 - **Actions Taken table broke the page width at 800 px**: the table's visually-hidden header
   label is absolutely positioned and escaped the `.table-responsive` scroll box. Fixed with
   `position-relative` on the wrapper, and the table now starts at 992 px (cards below), since

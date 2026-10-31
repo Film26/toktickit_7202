@@ -76,7 +76,7 @@ function NavBar() {
           </ul>
           <div className="d-flex align-items-center gap-3 flex-wrap py-2 py-md-0">
             <span className="text-white small">
-              {user.fullName} <span className="text-white-50">({ROLE_LABELS[user.role]})</span>
+              {user.fullName} <span className="nav-role">({ROLE_LABELS[user.role]})</span>
             </span>
             <button type="button" className="btn btn-outline-light btn-sm" onClick={handleLogout}>
               Log out
