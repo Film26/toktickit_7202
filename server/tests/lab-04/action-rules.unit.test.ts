@@ -69,6 +69,12 @@ describe('UNIT-02 merged action validation (BR-06, BR-07, BR-09, BR-10)', () => 
     expect(validateActionFields(fields({ description: 'x'.repeat(2001) }), ticketCreatedAt, now)).toHaveProperty('description')
   })
 
+  it('accepts a time in the same minute the ticket was created (minute-precision picker)', () => {
+    const createdAt = new Date('2026-10-06T05:35:42.000Z')
+    expect(validateActionFields(fields({ actionAt: new Date('2026-10-06T05:35:00.000Z') }), createdAt, now)).toEqual({})
+    expect(validateActionFields(fields({ actionAt: new Date('2026-10-06T05:34:00.000Z') }), createdAt, now)).toHaveProperty('actionAt')
+  })
+
   it('rejects dates before the ticket, and future dates unless Planned', () => {
     expect(validateActionFields(fields({ actionAt: new Date('2026-09-30T00:00:00Z') }), ticketCreatedAt, now)).toHaveProperty('actionAt')
     const tomorrow = new Date(now.getTime() + 24 * 3600 * 1000)

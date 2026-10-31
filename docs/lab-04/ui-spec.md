@@ -84,10 +84,10 @@ Tab renamed from "Service Actions" to **Actions Taken (n)**, placed first among 
 
 ### 6.1 List mode
 
-- ≥ 768px: table — Date/Time · Description · Result · Performed By · Assigned To · Status ·
+- ≥ 992px: table — Date/Time · Description · Result · Performed By · Assigned To · Status ·
   Follow-Up · (staff) "View / Edit" button. Description/result clamp to 2 lines with full text in
   the View panel. Follow-Up column: "Yes" + note excerpt, or "No".
-- < 768px: each action is a stacked card (label: value pairs), no horizontal scroll.
+- < 992px (tablet and mobile): each action is a stacked card (label: value pairs), no horizontal scroll.
 - Ordered by Action Date/Time ascending, then creation — stable across reloads.
 - Empty: "No Actions Taken recorded yet." (+ staff hint "Use Add Action to plan or record work.").
 - Staff header button **+ Add Action** (hidden when the Ticket is Resolved/Closed/Cancelled, with
@@ -146,7 +146,8 @@ Same list/cards, no Add/Edit buttons, View opens a read-only panel.
 | Width | Dashboards | Actions Taken | Navbar |
 |---|---|---|---|
 | ≥ 1200 | 5–6 cards in one row, two-column body | table | inline links |
-| 768–1199 | 3 cards per row, two columns from 992 | table (wraps text) | inline links |
+| 992–1199 | 3 cards per row, two-column body | table (wraps text) | inline links |
+| 768–991 | 3 cards per row, single column | stacked cards | inline links |
 | < 768 | 2 cards per row, single column | stacked cards | Menu toggle |
 
 No horizontal page scroll at 375, 768, 1280 px (checked by `e2e/lab-04/visual-inspection.spec.ts`
@@ -162,15 +163,30 @@ for text on Zen Green.
 
 ## 10. Visual and accessibility checklist (completed at release — Issue #69)
 
-| # | Check | Staff Dashboard | Requester Dashboard | Actions Taken |
-|---|---|---|---|---|
-| 1 | Zen Green tokens only, no stray Bootstrap blue | | | |
-| 2 | Cards/buttons/badges consistent with Labs 2–3 | | | |
-| 3 | Editable vs read-only fields visually distinct | n/a | n/a | |
-| 4 | Validation messages placed under the field | n/a | n/a | |
-| 5 | Visible keyboard focus on every control | | | |
-| 6 | No clipped text / overlapping controls (375/768/1280) | | | |
-| 7 | No horizontal overflow (375/768/1280) | | | |
-| 8 | Loading, empty, error states present | | | |
-| 9 | Non-colour status cues | | | |
-| 10 | Drill-down links reach the filtered list | | | n/a |
+Checked on 2026-10-07 against `artifacts/lab-04/screenshots/` (37 screenshots, desktop 1280 /
+tablet 800 / mobile 375 px, captured by `e2e/lab-04/visual-inspection.spec.ts` on the seeded dev
+DB). "Auto" = asserted by a test on every run; "Visual" = checked by reviewing the screenshots.
+
+| # | Check | Staff Dashboard | Requester Dashboard | Actions Taken | Evidence |
+|---|---|---|---|---|---|
+| 1 | Zen Green tokens only, no stray Bootstrap blue | ✅ | ✅ | ✅ | Visual |
+| 2 | Cards/buttons/badges consistent with Labs 2–3 | ✅ | ✅ | ✅ | Visual; reuses `StatusBadge`, `PriorityBadge`, card + button classes |
+| 3 | Editable vs read-only fields visually distinct | n/a | n/a | ✅ Performed By / Requester view use the read-only beige; Requester panel fields disabled | Visual + `ActionsTaken.test.tsx` UI-07 |
+| 4 | Validation messages placed under the field | n/a | n/a | ✅ `invalid-feedback` + `aria-invalid` + `aria-describedby` | `ActionsTaken.test.tsx` UI-04, screenshot `02-create-validation` |
+| 5 | Visible keyboard focus on every control | ✅ white 2px ring on nav | ✅ | ✅ green focus ring on inputs; heading focused when form opens | Visual + UI-04 (`toHaveFocus`) |
+| 6 | No clipped text / overlapping controls (375/768/1280) | ✅ (labels reserve 2 lines so values align) | ✅ | ✅ (table → cards below 992 px) | Visual |
+| 7 | No horizontal overflow (375/800/1280) | ✅ | ✅ | ✅ | Auto (`visual-inspection.spec.ts` asserts `scrollWidth ≤ innerWidth` at every width) |
+| 8 | Loading, empty, error states present | ✅ incl. safe-failure + Retry screenshot | ✅ | ✅ empty list, locked-ticket message | UI-02, UI-03, screenshot `04-safe-failure` |
+| 9 | Non-colour status cues | ✅ "+N today" has ▲ and text | ✅ | ✅ action status symbol + label; active nav underlined + bold | Visual |
+| 10 | Drill-down links reach the filtered list | ✅ | ✅ | n/a | Auto (DASH-04/07 API totals, E2E-04/05 in browser) |
+
+Issues found and fixed during this pass:
+
+- **Actions Taken table broke the page width at 800 px**: the table's visually-hidden header
+  label is absolutely positioned and escaped the `.table-responsive` scroll box. Fixed with
+  `position-relative` on the wrapper, and the table now starts at 992 px (cards below), since
+  eight columns do not fit a tablet usefully.
+- **Clamping text on a `<td>` itself broke the table layout** (Result rendered under
+  Description). Fixed by clamping an inner `<div>`.
+- **Metric values misaligned** when one label wrapped ("Waiting for Requester"). Fixed by
+  reserving two label lines on every card.

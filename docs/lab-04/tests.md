@@ -75,15 +75,15 @@ Run: `cd server && npm run test:prepare && npm test` · `cd client && npm test` 
 | UI-09 | UI | AC-25 | Resolve disabled with gate hint; success refreshes badge + history | correct | client/tests/lab-04/TicketWorkflow.test.tsx | Pass (#67) |
 | UI-10 | UI | FR-14 | Queue / My Tickets read drill-down params into the API call | query forwarded | client/tests/lab-04/StaffDashboard.test.tsx | Pass (#68) |
 | UI-11 | UI | FR-15 | NavBar role links + aria-current | correct | client/tests/lab-04/StaffDashboard.test.tsx | Pass (#68) |
-| E2E-01 | E2E | AC-03 | Staff: add planned action assigned to another staff, edit, complete, resolve | list + status update | e2e/lab-04/actions-taken-flow.spec.ts | Planned |
-| E2E-02 | E2E | AC-07, AC-24 | Requester sees the actions read-only | no Add/Edit | e2e/lab-04/actions-taken-flow.spec.ts | Planned |
-| E2E-03 | E2E | AC-10, AC-25 | Resolve blocked by open action, then allowed; Requester confirms → Closed | pass | e2e/lab-04/ticket-resolution.spec.ts | Planned |
-| E2E-04 | E2E | AC-26, AC-18 | Staff dashboard card → filtered queue count matches | pass | e2e/lab-04/dashboards.spec.ts | Planned |
-| E2E-05 | E2E | AC-02, AC-26 | Requester dashboard → filtered My Tickets; only own tickets | pass | e2e/lab-04/dashboards.spec.ts | Planned |
-| STYLE-01 | UI style / responsive | AC-27 | No horizontal overflow on dashboards + ticket detail at 375/768/1280; screenshots | pass | e2e/lab-04/visual-inspection.spec.ts | Planned |
-| REG-01 | Regression | AC-28 | All Lab 1–3 + full-app server tests | pass | server/tests/{lab-01,lab-02,lab-03,full-app} | Planned |
-| REG-02 | Regression | AC-28 | All Lab 1–3 client tests | pass | client/tests/{lab-01,lab-02,lab-03,full-app} | Planned |
-| REG-03 | Regression | AC-28 | Lab 2 + Lab 3 E2E | pass | e2e/lab-02, e2e/lab-03 | Planned |
+| E2E-01 | E2E | AC-03 | Staff: add planned action assigned to another staff, edit, complete, resolve | list + status update | e2e/lab-04/actions-taken-flow.spec.ts | Pass (#69) |
+| E2E-02 | E2E | AC-07, AC-24 | Requester sees the actions read-only | no Add/Edit | e2e/lab-04/actions-taken-flow.spec.ts | Pass (#69) |
+| E2E-03 | E2E | AC-10, AC-25 | Resolve blocked by open action, then allowed; Requester confirms → Closed | pass | e2e/lab-04/ticket-resolution.spec.ts | Pass (#69) |
+| E2E-04 | E2E | AC-26, AC-18 | Staff dashboard card → filtered queue count matches | pass | e2e/lab-04/dashboards.spec.ts | Pass (#69) |
+| E2E-05 | E2E | AC-02, AC-26 | Requester dashboard → filtered My Tickets; only own tickets | pass | e2e/lab-04/dashboards.spec.ts | Pass (#69) |
+| STYLE-01 | UI style / responsive | AC-27 | No horizontal overflow on dashboards + ticket detail at 375/768/1280; screenshots | pass | e2e/lab-04/visual-inspection.spec.ts | Pass (#69) |
+| REG-01 | Regression | AC-28 | All Lab 1–3 + full-app server tests | pass | server/tests/{lab-01,lab-02,lab-03,full-app} | Pass (#69) |
+| REG-02 | Regression | AC-28 | All Lab 1–3 client tests | pass | client/tests/{lab-01,lab-02,lab-03,full-app} | Pass (#69) |
+| REG-03 | Regression | AC-28 | Lab 2 + Lab 3 E2E | pass | e2e/lab-02, e2e/lab-03 | Pass (#69) |
 
 ## 3. AC → test traceability
 
@@ -140,6 +140,11 @@ Lab 3 tests that resolved a Ticket without any Action Taken must first record a 
 |---|---|---|---|
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `server: npx vitest run` | 23 files, **225/225 passed** (181 Lab 1–3 + 44 Lab 4) |
 | 2026-10-07 | `feat/issue-65-actions-taken-api` | `client: npx vitest run` | 12 files, **45/45 passed** |
+| 2026-10-07 | `feat/issue-69-hardening` (full stack of #71–#76) | `server: npx vitest run` | 26 files, **261/261 passed** |
+| 2026-10-07 | `feat/issue-69-hardening` | `client: npx vitest run` | 16 files, **85/85 passed** |
+| 2026-10-07 | `feat/issue-69-hardening` | `e2e: npx playwright test` (Lab 2 + 3 + 4), API on `toktickit_test` | **26/26 passed** — **372/372 in total** |
+| 2026-10-07 | `feat/issue-69-hardening` | `e2e/lab-04/visual-inspection` on the seeded dev DB | 5/5 passed, 37 screenshots committed, 0 px overflow at 1280/800/375. Found + fixed: Actions Taken table overflowed at 800 px |
+| 2026-10-07 | `feat/issue-69-hardening` | `e2e/lab-04` first run | Found + fixed a real bug: an action dated "now" in the same minute the ticket was created was rejected (BR-10 now minute precision; unit test added) |
 | 2026-10-07 | `feat/issue-68-dashboards` | `server: npx vitest run` (sequential files) | 26 files, **260/260 passed** in 36 s |
 | 2026-10-07 | `feat/issue-68-dashboards` | `client: npx vitest run` | 16 files, **85/85 passed** |
 | 2026-10-07 | `feat/issue-68-dashboards` | `e2e: npx playwright test` (Lab 2 + Lab 3), API on `toktickit_test` | **17/17 passed**. Note: on the dev DB the `admin@toktickit.dev` password was changed on 2026-09-19, so admin E2E steps must run against a DB with seed passwords |

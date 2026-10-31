@@ -33,14 +33,26 @@ cd server
 npm install
 cp .env.example .env   # then fill in DATABASE_URL, JWT_SECRET, JWT_EXPIRES_IN
 npx prisma generate
+npx prisma migrate deploy   # apply all migrations (Labs 1-4) - additive, keeps existing data
+npm run prisma:seed         # idempotent: safe to run again, never duplicates
 npm run dev             # starts the API on http://localhost:4000
 ```
+
+> **Shell `DATABASE_URL` wins over `server/.env`.** Prisma and `dotenv` do not override an
+> environment variable that is already set. If your machine has a global `DATABASE_URL` for
+> another project, every command above silently targets *that* database. Check with
+> `npx prisma migrate status` (it prints the database name) and, if needed, prefix commands with
+> the right URL, e.g. `DATABASE_URL="postgresql://…/toktickit?schema=public" npm run dev`.
+
+**Before migrating a database that holds data you care about**, back it up
+(`pg_dump -Fc toktickit > backup.dump`). Lab 4 migrations are additive; each has a manual
+rollback script next to it (`server/prisma/migrations/2026100*/down.sql`).
 
 Backend scripts:
 
 - `npm run dev` — start the API in watch mode
 - `npm run build` / `npm start` — compile and run the production build
-- `npm test` — run Vitest + Supertest
+- `npm test` — run Vitest + Supertest (test files run one at a time: they share the `.env.test` DB)
 - `npm run test:prepare` — apply migrations and seed the `.env.test` database
 - `npm run prisma:generate` — regenerate the Prisma client
 - `npm run prisma:migrate` — run Prisma migrations
@@ -87,9 +99,9 @@ All routes are mounted under `/api`. Routes other than `/health`, `/auth/login`,
 | PATCH | `/api/users/:id/status` | Activate/deactivate a user | Administrator |
 | POST | `/api/users/:id/reset-password` | Reset a user's password | Administrator |
 | POST | `/api/tickets` | Create a ticket | Requester |
-| GET | `/api/tickets/mine` | List the current requester's tickets (`status`, `search`, `sort`, `order`, `page`, `pageSize`) | Requester |
-| GET | `/api/tickets` | List tickets / queue (`status`, `ownerId`, `categoryId`, `q`, `sort`, `order`, `page`, `pageSize`) | IT Staff / Administrator |
-| GET | `/api/tickets/:id` | Get one ticket | Authenticated (owner or staff) |
+| GET | `/api/tickets/mine` | List the current requester's tickets (`status`, `statusGroup=open`, `search`, `sort`, `order`, `page`, `pageSize`) | Requester |
+| GET | `/api/tickets` | List tickets / queue (`status`, `statusGroup=open`, `itPriority`, `ownerId`, `categoryId`, `q`, `sort`, `order`, `page`, `pageSize`) | IT Staff / Administrator |
+| GET | `/api/tickets/:id` | Get one ticket (incl. `version`, Actions Taken, `statusHistory`) | Authenticated (owner or staff) |
 | PATCH | `/api/tickets/:id/priority` | Update requester-set priority | Requester |
 | PATCH | `/api/tickets/:id/requester-appears-resolved` | Flag/unflag "problem appears resolved" (own ticket) | Requester |
 | POST | `/api/tickets/:id/confirm-resolution` | Confirm a proposed resolution | Requester |
@@ -97,13 +109,16 @@ All routes are mounted under `/api`. Routes other than `/health`, `/auth/login`,
 | POST | `/api/tickets/:id/request-reopen` | Request a closed ticket be reopened | Requester |
 | PATCH | `/api/tickets/:id/owner` | Assign/reassign the ticket owner | IT Staff / Administrator |
 | PATCH | `/api/tickets/:id/it-priority` | Update IT-set priority | IT Staff / Administrator |
-| PATCH | `/api/tickets/:id/status` | Update ticket status (see `docs/lab-03/specification.md` §7 for the transition matrix) | IT Staff / Administrator |
-| POST | `/api/tickets/:id/resolve` | Propose a resolution | IT Staff / Administrator |
+| PATCH | `/api/tickets/:id/status` | Update ticket status (see `docs/lab-04/specification.md` §7 for the final transition matrix; optional `version` → `409 STALE_UPDATE`) | IT Staff / Administrator |
+| POST | `/api/tickets/:id/resolve` | Resolve — needs ≥1 Completed and no open Action Taken (`409 RESOLUTION_GATE`) | IT Staff / Administrator |
 | POST | `/api/tickets/:id/close` | Close a ticket | IT Staff / Administrator |
-| POST | `/api/tickets/:id/cancel` | Cancel a ticket (only from New/Open) | IT Staff / Administrator |
+| POST | `/api/tickets/:id/cancel` | Cancel a ticket (only from New/Open; open actions are cancelled too) | IT Staff / Administrator |
 | POST | `/api/tickets/:id/notes` | Add an internal note | IT Staff / Administrator |
-| POST | `/api/tickets/:id/actions` | Log an action taken | IT Staff / Administrator |
-| PATCH | `/api/tickets/:id/actions/:actionId` | Update a logged action | IT Staff / Administrator |
+| GET | `/api/tickets/:id/actions` | List a ticket's Actions Taken | Authenticated (owner or staff) |
+| POST | `/api/tickets/:id/actions` | Create an Action Taken (`clientRequestId` makes retries safe) | IT Staff / Administrator |
+| PATCH | `/api/tickets/:id/actions/:actionId` | Edit / assign / start / complete / cancel an Action Taken (requires `version`) | IT Staff / Administrator |
+| GET | `/api/dashboard/requester` | Requester Dashboard metrics and lists (own tickets only) | Requester |
+| GET | `/api/dashboard/staff` | IT Staff Dashboard (Administrators also get user counts) | IT Staff / Administrator |
 | POST | `/api/tickets/:id/comments` | Add a public comment | Authenticated (owner or staff) |
 | POST | `/api/tickets/:id/attachments` | Upload an attachment | Authenticated (owner or staff) |
 | GET | `/api/attachments/:id` | Get one attachment's metadata | Authenticated (owner or staff) |
@@ -134,6 +149,19 @@ The Login screen also links to `/dev-requester-select`, a password-free Requeste
 for local testing only (`POST /api/requesters/dev-select`) — see `docs/lab-02/specification.md`
 §11 for why it's intentionally decoupled from the real login flow.
 
+## Demo walkthrough (Lab 4)
+
+1. Sign in as `itstaff@toktickit.dev` → **IT Staff Dashboard**. Click any card's *View all* to
+   open the Ticket Queue filtered to exactly those tickets.
+2. Open `TKT-SAMPLE-000001` → **Actions Taken** tab: three actions by different staff (Completed,
+   In Progress, Planned). *Resolve Ticket* is disabled ("2 actions are still open").
+3. Complete or cancel the open actions (*View / Edit* → *Mark Completed* needs a Result), then
+   resolve. The **Status History** tab records each change.
+4. Sign in as `requester@toktickit.dev` → **Requester Dashboard** → the same ticket appears under
+   *Needs Your Attention*; open it, read the Actions Taken (read-only), *Confirm Resolution*.
+
+Full scope and rules: `docs/lab-04/specification.md`.
+
 ## End-to-end tests
 
 ```bash
@@ -144,7 +172,11 @@ npm test                           # starts the API + client dev servers, runs P
 ```
 
 Runs against the real dev-mode app and the same Postgres database `server/.env` points at (not a
-mock) — see `e2e/playwright.config.ts`.
+mock) — see `e2e/playwright.config.ts`. The specs log in with the **seed passwords** above, so run
+them against a database where those are unchanged (e.g. start the API with the `.env.test`
+`DATABASE_URL`). `lab-03/visual-inspection` and `lab-04/visual-inspection` rewrite the committed
+screenshots under `artifacts/`; restore them with `git checkout -- artifacts` if you don't mean
+to update them.
 
 ## Project Structure
 
@@ -159,7 +191,8 @@ toktickit/
 │   └── tests/
 │       ├── full-app/         # Full-app RTL/Vitest tests
 │       ├── lab-02/            # Lab 2 UI/component tests
-│       └── lab-03/            # Lab 3 UI/component tests
+│       ├── lab-03/            # Lab 3 UI/component tests
+│       └── lab-04/            # Lab 4 UI/component tests (dashboards, Actions Taken, workflow)
 ├── server/
 │   ├── prisma/               # Prisma schema, migrations, and seed script
 │   ├── src/
@@ -171,17 +204,22 @@ toktickit/
 │       ├── lab-01/            # Lab 1 Supertest API tests
 │       ├── lab-02/            # Lab 2 Supertest API tests
 │       ├── lab-03/            # Lab 3 Supertest API tests
+│       ├── lab-04/            # Lab 4 unit, API, workflow, dashboard, migration/seed tests
+│       ├── helpers/           # Shared test helpers
 │       └── full-app/           # Full-app Supertest API tests
 ├── e2e/                     # Playwright end-to-end suite (real dev servers + DB)
 │   ├── lab-02/                # Lab 2 E2E specs
-│   └── lab-03/                # Lab 3 E2E specs + visual-inspection screenshots capture
+│   ├── lab-03/                # Lab 3 E2E specs + visual-inspection screenshots capture
+│   └── lab-04/                # Lab 4 E2E specs (actions, resolution, dashboards) + screenshots
 ├── artifacts/
 │   ├── lab-02/screenshots/    # Lab 2 submission screenshot evidence
-│   └── lab-03/screenshots/    # Lab 3 submission screenshot evidence
+│   ├── lab-03/screenshots/    # Lab 3 submission screenshot evidence
+│   └── lab-04/screenshots/    # Lab 4: staff-dashboard/, requester-dashboard/, actions-taken/
 ├── docs/
 │   ├── lab-01/                # Lab 1 documentation
 │   ├── lab-02/                # Lab 2 documentation (spec, ui-spec, api-spec, tests, reviewer)
-│   └── lab-03/                # Lab 3 documentation (spec, ui-spec, api-spec, tests, reviewer)
+│   ├── lab-03/                # Lab 3 documentation (spec, ui-spec, api-spec, tests, reviewer)
+│   └── lab-04/                # Lab 4 documentation (spec, ui-spec, api-spec, tests, reviewer, ai-use)
 ├── .gitignore
 └── README.md
 ```
